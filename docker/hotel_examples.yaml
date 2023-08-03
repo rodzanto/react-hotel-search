@@ -1,0 +1,216 @@
+- answer: There are 122083 rows in the artists table.
+  input: How many rows are in the hotels table?
+  sql_cmd: SELECT count(*) FROM wb_hotels;
+  sql_result: '[(122083,)]'
+  table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
+
+- answer: There are 33871 hotels with 4 star rating.
+  input: How many hotles have 4 star rating?
+  sql_cmd: select count(*) from wb_hotels where starrating=='Superior ****';
+  sql_result: '[(33871,)]'
+  table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
+
+- answer: There are 6 different rating options.
+  input: How many rating options are there for a hotel?
+  sql_cmd: select distinct starrating from wb_hotels;
+  sql_result: 'Serviced Apartment, Luxury *****, Superior ****, Standard ***, Economy*, Budget **'
+  table_info: |
+    table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
+
+
+- answer: There are 1551 hotels in Paris.
+  input: How many artworks are by the artist 'Pablo Picasso'?
+  sql_cmd: |
+    select count(*) from wb_hotels where cityname='PARIS';
+  sql_result: '[(1551,)]'
+  table_info: |
+    table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
+
+- answer: There are 41273 hotels in United States.
+  input: How many hotels are there in United States?
+  sql_cmd: |
+    select count(*) from wb_hotels where countryid='US';
+  sql_result: '[(41273,)]'
+  table_info: |
+    table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
+    
+- answer: There are 203 different country codes.
+  input: How many countries are there?
+  sql_cmd: select distinct countryid from wb_hotels;
+  sql_result: 'DK, SV, SI, SN, CZ, KR, JP, BS, VE, UZ, AU, CL, QA, BM, MZ, GE, EE, AT, TD, LI, CI, VN, NF, KW, AR, NI, MG, BR, RW, TJ, PL, LR, VU, BZ, LA, MT, MC, BY, VC, GI, EG, MF, LK, SA, SM, DE, TT, SK, LT, JM, SR, MU, CY, PF, NaN, BB, SZ, NU, AG, HU, FI, ST, RS, EC, KG, AO, MR, TG, IE, DJ, RE, BQ, BD, DO, ES, NO, BA, TH, TN, PS, BH, TR, CU, MA, AL, SY, CO, BE, AN, DZ, AZ, GL, GT, MM, PE, PY, CK, SG, US, KE, UG, KZ, NZ, SL, GU, HN, UY, AE, IR, IQ, DM, NL, CN, IN, GQ, NE, BN, ME, GM, LS, ET, ZM, TC, BL, MY, HK, KM, MV, NP, MQ, VG, BW, MP, AI, SE, GH, BF, KN, CH, BT, SC, AW, VI, PW, PK, BO, LU, TW, CA, ML, PR, FR, KY, LV, FJ, PG, MX, RO, CW, TZ, BI, MO, PH, ZW, NC, CG, LC, FO, GA, ID, GY, MN, OM, WS, AM, LB, PA, MD, HT, AD, ZA, GN, PT, TO, NG, IL, JO, BG, GB, IT, GP, IS, CR, HR, MK, KH, GR, MW, GD, BJ, CM, GW, CV' 
+  table_info: |
+    table_info: |
+    CREATE TABLE public.wb_hotels (
+        platform character varying,
+        hotelid integer NOT NULL,
+        wbpropertyid integer,
+        hotelname character varying,
+        address character varying,
+        streetname character varying,
+        cityname character varying,
+        countryid character varying,
+        starrating character varying,
+        latitude double precision,
+        longitude double precision,
+        in_contract character varying,
+        is_chain character varying,
+        giataid integer,
+        giatahotelname character varying,
+        giatastarrating double precision,
+        giatacity character varying,
+        giatadestination character varying
+    );
+
+
+    /*
+    3 rows from hotels table:
+    platform	hotelid	wbpropertyid	hotelname	address	streetname	cityname	countryid	starrating	latitude	longitude	in_contract	is_chain	giataid	giatahotelname	giatastarrating	giatacity	giatadestination
+    DOTW	3164415	102639	Forte Kochi	Princess Street Fort Kochi Kochi Kerala 1/373	Princess Street Fort Kochi Kochi Kerala 1/373	KOCHI - COCHIN	IN	Superior ****	9.96678676	76.2426321	false	false	899471	Forte Kochi	5	Cochin	Kerala
+    DOTW	3164905	102859	Nk Grand Park Hotel	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	"8/100-C Shandy Rd.	 Cantonment Pallavaram"	CHENNAI (MADRAS)	IN	Standard ***	12.97103024	80.14971924	false	false	729722	NK Grand Park Hotel	3	Chennai	Tamil Nadu
+    DOTW	3192765	107101	Hash Six Hotels	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	257 Mettupalayam Road Opp. Saibaba Kovil Coimbatore 641043	COIMBATORE	IN	Superior ****	11.0271584	76.9520944	false	false	749489	Hash Six Hotels	4	Coimbatore	Tamil Nadu
+    */
