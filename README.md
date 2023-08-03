@@ -8,8 +8,12 @@ We use an [Amazon Bedrock](https://aws.amazon.com/bedrock/) Large Language Model
 ![example](./example.png)
 
 ### Architecture and flow
-
-
+![arq](./pics/nlq-arq.png)
 
 
 ### Instructions
+- Download dependencies (boto3 and botocore SDK packages) into `docker/dependencies`
+
+Repo forked from [AWS Solutions Library repo](https://github.com/aws-solutions-library-samples/guidance-for-natural-language-queries-of-relational-databases-on-aws)
+
+[AWS Solution NLQ website](https://aws.amazon.com/solutions/guidance/natural-language-queries-of-relational-databases-on-aws/)
