@@ -12,7 +12,7 @@ We use an [Amazon Bedrock](https://aws.amazon.com/bedrock/) Large Language Model
 
 
 ## Instructions
-- Download dependencies (boto3 and botocore SDK packages) into `docker/dependencies`
+- Download dependencies (boto3 and botocore SDK packages) into `src/dependencies`
 
 Repo forked from [AWS Solutions Library repo](https://github.com/aws-solutions-library-samples/guidance-for-natural-language-queries-of-relational-databases-on-aws)
 
@@ -20,16 +20,24 @@ Repo forked from [AWS Solutions Library repo](https://github.com/aws-solutions-l
 
 ## Running locally
 
-You can run a development environment locally by setting up a local DB using Docker:
+You can run a development environment locally using Docker:
+
+1. Copy the botocore & boto3 whl files from the BedRock SDK into
+   [`dependencies`](src/dependencies).
+2. Modify the value of the `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY` variables in 
+   [`docker-compose.yml`](docker-compose.yml) for an account that has access
+   to Bedrock.
+
+You can then run the environment using:
 
 ```bash
-cd docker
-# Replace [DB_PASSWORD] by your desired database password, and change port forwarding if needed
-docker run -d --rm -e POSTGRES_PASSWORD=[DB_PASSWORD] -e POSTGRES_DB=wb_hotels -p 5432:5432 -v $(pwd)/assets/wb_hotels.sql:/docker-entrypoint-initdb.d/00_wb_hotels.sql postgres
+docker compose up --build
 ```
 
-You can then instruct the code to use the local DB through an environment variable:
+You can further modify the behaviour of the application by setting environment
+variables in [`docker-compose.yml`](docker-compose.yml). Of particular
+interest is:
 
-```bash
-DB_URI="postgresql+psycopg2://postgres:[DB_PASSWORD]@localhost:5432/wb_hotels" USE_AWS_PROFILE=true streamlit run app_bedrock.py
-```
+* `USE_AWS_PROFILE`: If present, the code will honour the normal `AWS_ACCESS_KEY_ID` &
+  `AWS_SECRET_ACCESS_KEY` and related variables for the BedRock client. It will otherwise
+  look for the credentials in AWS Secrets manager.
