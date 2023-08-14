@@ -34,7 +34,7 @@
     */
 
 - answer: There are 33871 hotels with 4 star rating.
-  input: How many hotles have 4 star rating?
+  input: How many hotels have 4 star rating?
   sql_cmd: select count(*) from wb_hotels where starrating=='Superior ****';
   sql_result: '[(33871,)]'
   table_info: |

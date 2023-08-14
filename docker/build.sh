@@ -10,9 +10,10 @@
 
 # Value located in the output from the nlq-genai-infra CloudFormation template
 # e.g. 111222333444.dkr.ecr.us-east-1.amazonaws.com/nlq-genai
-ECS_REPOSITORY="<you_ecr_repository>"
+ECS_REPOSITORY="718981880495.dkr.ecr.eu-west-1.amazonaws.com/nlq-genai"
+REGION="eu-west-1"
 
-aws ecr get-login-password --region us-east-1 |
+aws ecr get-login-password --region $REGION |
 	docker login --username AWS --password-stdin $ECS_REPOSITORY
 
 # Option 1: SageMaker JumpStart FM Endpoint

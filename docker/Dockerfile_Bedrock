@@ -15,24 +15,24 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 COPY requirements.txt .
 COPY dependencies/ ./dependencies
 
-RUN set -ex \
-    # create a non-root user
-    && groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --create-home appuser \
-    # upgrade the package index and install security upgrades
-    && apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install gcc g++ git make -y \
-    # install dependencies
-    && pip install -r requirements.txt -U \
-    && python3 -m pip uninstall boto3 -y \
-    && python3 -m pip install -IU --force-reinstall ./dependencies/boto3-1.26.162-py3-none-any.whl \
-    && python3 -m pip uninstall botocore -y \
-    && python3 -m pip install -IU --force-reinstall ./dependencies/botocore-1.29.162-py3-none-any.whl \
-    # clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -ex
+# create a non-root user
+RUN groupadd --system --gid 1001 appgroup
+RUN useradd --system --uid 1001 --gid 1001 --create-home appuser
+# upgrade the package index and install security upgrades
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install gcc g++ git make -y
+# install dependencies
+RUN pip install -r requirements.txt -U
+RUN python3 -m pip uninstall boto3 -y
+RUN python3 -m pip install -IU ./dependencies/boto3-1.26.162-py3-none-any.whl
+RUN python3 -m pip uninstall botocore -y
+RUN python3 -m pip install -IU ./dependencies/botocore-1.29.162-py3-none-any.whl
+# clean up
+RUN apt-get autoremove -y
+RUN apt-get clean -y
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/appuser/
 

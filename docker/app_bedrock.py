@@ -1,11 +1,8 @@
-# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and OpenAI's LLM models via their API.
-# Author: Gary A. Stafford (garystaf@amazon.com)
-# Date: 2023-07-17
+# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and Bedrock LLM models via the API.
 # Application expects the following environment variables (adjust for your environment):
-# export OPENAI_API_KEY="sk-<your_api_key>""
 # export REGION_NAME="us-east-1"
-# export MODEL_NAME="gpt-3.5-turbo"
-# Usage: streamlit run app_openai.py --server.runOnSave true
+# export MODEL_NAME="anthropic.claude-v2"
+# Usage: streamlit run app_bedrock.py --server.runOnSave true
 
 import ast
 import json
@@ -17,8 +14,8 @@ import pandas as pd
 import streamlit as st
 import yaml
 from botocore.exceptions import ClientError
-from langchain import (FewShotPromptTemplate, PromptTemplate, SQLDatabase,
-                       SQLDatabaseChain)
+from langchain import (FewShotPromptTemplate, PromptTemplate, SQLDatabase)
+from langchain_experimental.sql import SQLDatabaseChain
 from langchain.chains.sql_database.prompt import (PROMPT_SUFFIX,
                                                   _postgres_prompt)
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
@@ -27,14 +24,19 @@ from langchain.prompts.example_selector.semantic_similarity import \
 from langchain.vectorstores import Chroma
 from botocore.client import Config as BotoConfig
 from langchain.llms.bedrock import Bedrock
+from langchain.memory import ConversationBufferMemory
+from langchain.agents import load_tools
+from langchain.agents import Tool
+from langchain.agents import initialize_agent
+from langchain.agents import AgentType
 
 REGION_NAME = os.environ.get("REGION_NAME", "eu-west-1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v1")
+#MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
+MODEL_NAME = "anthropic.claude-v2"
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = (
     "https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static"
 )
-
 
 def main():
     st.set_page_config(
@@ -66,7 +68,7 @@ def main():
     inference_modifier = {'max_tokens_to_sample':4096, 
                         "temperature":0.5,
                         "top_k":250,
-                        "stop_sequences": ["\n\nQuestion"],
+                        "stop_sequences": ["\n\n"],
                         "top_p":1
                             }
 
@@ -82,6 +84,25 @@ def main():
     examples = load_samples()
 
     sql_db_chain = load_few_shot_chain(llm, db, examples)
+    sql_tool = Tool(
+        name='Hotels DB',
+        func=sql_db_chain.run,
+        description="Useful for when you need to answer questions about hotels and their ratings."
+    )
+    tools = load_tools(
+        ["llm-math"],
+        llm=llm
+    )
+    tools.append(sql_tool)
+
+    conversational_agent = initialize_agent(
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
+        tools=tools, 
+        llm=llm,
+        verbose=True,
+        max_iterations=1,
+        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output", return_messages=True),
+    )  
 
     # store the initial value of widgets in session state
     if "visibility" not in st.session_state:
@@ -116,25 +137,12 @@ def main():
                     st.markdown(
                         """
                         - Simple
-                            - How many artists are there in the collection?
-                            - How many pieces of artwork are there?
-                            - How many artists are there whose nationality is Italian?
-                            - How many artworks are by the artist Claude Monet?
-                            - How many artworks are classified as paintings?
-                            - How many artworks were created by Spanish artists?
-                            - How many artist names start with the letter 'M'?
+                            - How many hotels are there?
+                            - What are the best rated hotels in Barcelona?                            
                         - Moderate
-                            - How many artists are deceased as a percentage of all artists?
-                            - Who is the most prolific artist? What is their nationality?
-                            - What nationality of artists created the most artworks?
-                            - What is the ratio of male to female artists? Return as a ratio.
+                            - Show me 5 hotels with 4 star rating
                         - Complex
-                            - How many artworks were produced during the First World War, which are classified as paintings?
-                            - What are the five oldest pieces of artwork? Return the title and date for each.
-                            - What are the 10 most prolific artists? Return their name and count of artwork.
-                            - Return the artwork for Frida Kahlo in a numbered list, including the title and date.
-                            - What is the count of artworks by classification? Return the first ten in descending order. Don't include Not_Assigned.
-                            - What are the 12 artworks by different Western European artists born before 1900? Write Python code to output them with Matplotlib as a table. Include header row and font size of 12.
+                            - TBD
                         - Unrelated to the Dataset
                             - Give me a recipe for chocolate cake.
                             - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup final?
@@ -158,6 +166,13 @@ def main():
                         st.session_state.past.append(user_input)
                         try:
                             output = sql_db_chain(user_input)
+                            #output = conversational_agent({"input":user_input})
+
+                            print("conversational_agent out:")
+                            print(output)
+                            print("SQL chain out:")
+                            #print(output2)
+
                             st.session_state.generated.append(output)
                             logging.info(st.session_state["query"])
                             logging.info(st.session_state["generated"])
@@ -176,7 +191,8 @@ def main():
                                     "assistant",
                                     avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
-                                    st.text(st.session_state["generated"][i]["result"])
+                                    st.text(st.session_state["generated"][i])
+                                    st.text(st.session_state["generated"][i]["output"])
                                     #st.code(st.session_state["generated"][i]["result"], language="text")
                                 with st.chat_message(
                                     "user",
@@ -226,7 +242,7 @@ def main():
 
                 st.markdown("Answer:")
                 st.code(
-                    st.session_state["generated"][position]["result"], language="text"
+                    st.session_state["generated"][position]["output"], language="text"
                 )
 
                 data = ast.literal_eval(
@@ -246,14 +262,6 @@ def main():
             st.markdown(
                 """
             [Natural language query (NLQ)](https://www.yellowfinbi.com/glossary/natural-language-query), according to Yellowfin, enables analytics users to ask questions of their data. It parses for keywords and generates relevant answers sourced from related databases, with results typically delivered as a report, chart or textual explanation that attempt to answer the query, and provide depth of understanding.
-            """
-            )
-            st.markdown(" ")
-
-            st.markdown("##### The MoMa Collection Datasets")
-            st.markdown(
-                """
-            [The Museum of Modern Art (MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).
             """
             )
             st.markdown(" ")
@@ -382,17 +390,19 @@ def load_few_shot_chain(llm, db, examples):
         example_selector=example_selector,
         example_prompt=example_prompt,
         prefix=_postgres_prompt + "Here are some examples:",
-        suffix=PROMPT_SUFFIX,
-        input_variables=["table_info", "input", "top_k"],
+        suffix=PROMPT_SUFFIX + "Relevant pieces of previous conversation: {history} (You do not need to use these pieces of information if not relevant)",
+        input_variables=["table_info", "input", "top_k", "history"],
     )
 
+    memory = ConversationBufferMemory(memory_key="history", input_key="input")
     return SQLDatabaseChain.from_llm(
         llm,
         db,
         prompt=few_shot_prompt,
-        use_query_checker=False,  # must be False for OpenAI model
+        use_query_checker=True, 
         verbose=True,
         return_intermediate_steps=True,
+        memory=memory
     )
 
 
