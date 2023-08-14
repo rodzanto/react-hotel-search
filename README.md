@@ -31,7 +31,7 @@ You can run a development environment locally using Docker:
 You can then run the environment using:
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 You can further modify the behaviour of the application by setting environment
