@@ -1,0 +1,17 @@
+[server]
+port = 8501
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+
+[logger]
+level = "info"
+
+[client]
+toolbarMode = "viewer"
+showErrorDetails = true
+
+[theme]
+base = "light"
+primaryColor = "#3383f6"

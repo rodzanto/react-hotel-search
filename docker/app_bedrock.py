@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and Bedrock LLM models via the API.
 # Application expects the following environment variables (adjust for your environment):
 # export REGION_NAME="us-east-1"
@@ -31,12 +33,13 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 
 REGION_NAME = os.environ.get("REGION_NAME", "eu-west-1")
-#MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
+# MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
 MODEL_NAME = "anthropic.claude-v2"
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = (
     "https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static"
 )
+
 
 def main():
     st.set_page_config(
@@ -56,7 +59,7 @@ def main():
     # st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
     NO_ANSWER_MSG = "Sorry, I was unable to answer your question."
-    
+
     access_key, secret_key = get_bedrock_credentials(REGION_NAME)
     boto3_kwargs = dict(
         aws_access_key_id=access_key,
@@ -65,19 +68,20 @@ def main():
 
     config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
     bedrock_client = boto3.client(service_name='bedrock', region_name='us-east-1', **boto3_kwargs, config=config)
-    inference_modifier = {'max_tokens_to_sample':4096, 
-                        "temperature":0.5,
-                        "top_k":250,
-                        "stop_sequences": ["\n\n"],
-                        "top_p":1
-                            }
+    inference_modifier = {'max_tokens_to_sample': 4096,
+                          "temperature": 0.5,
+                          "top_k": 250,
+                          "stop_sequences": ["\n\n"],
+                          "top_p": 1
+                          }
 
-    #titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
-    anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier )
+    # titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
+    anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier)
     llm = anthropic_llm
 
     # define datasource uri
-    rds_uri = get_rds_uri(REGION_NAME)
+    logging.error(os.environ)
+    rds_uri = os.environ.get('DB_URI', get_rds_uri(REGION_NAME))
     db = SQLDatabase.from_uri(rds_uri)
 
     # load examples for few-shot prompting
@@ -96,13 +100,14 @@ def main():
     tools.append(sql_tool)
 
     conversational_agent = initialize_agent(
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
-        tools=tools, 
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        tools=tools,
         llm=llm,
         verbose=True,
         max_iterations=1,
-        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output", return_messages=True),
-    )  
+        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output",
+                                        return_messages=True),
+    )
 
     # store the initial value of widgets in session state
     if "visibility" not in st.session_state:
@@ -166,12 +171,12 @@ def main():
                         st.session_state.past.append(user_input)
                         try:
                             output = sql_db_chain(user_input)
-                            #output = conversational_agent({"input":user_input})
+                            # output = conversational_agent({"input":user_input})
 
                             print("conversational_agent out:")
                             print(output)
                             print("SQL chain out:")
-                            #print(output2)
+                            # print(output2)
 
                             st.session_state.generated.append(output)
                             logging.info(st.session_state["query"])
@@ -185,29 +190,29 @@ def main():
                     with col1:
                         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
                             if (i >= 0) and (
-                                st.session_state["generated"][i] != NO_ANSWER_MSG
+                                    st.session_state["generated"][i] != NO_ANSWER_MSG
                             ):
                                 with st.chat_message(
-                                    "assistant",
-                                    avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
+                                        "assistant",
+                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
                                     st.text(st.session_state["generated"][i])
                                     st.text(st.session_state["generated"][i]["output"])
-                                    #st.code(st.session_state["generated"][i]["result"], language="text")
+                                    # st.code(st.session_state["generated"][i]["result"], language="text")
                                 with st.chat_message(
-                                    "user",
-                                    avatar=f"{BASE_AVATAR_URL}/human-64px.png",
+                                        "user",
+                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
                                 ):
                                     st.write(st.session_state["past"][i])
                             else:
                                 with st.chat_message(
-                                    "assistant",
-                                    avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
+                                        "assistant",
+                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
                                     st.write(NO_ANSWER_MSG)
                                 with st.chat_message(
-                                    "user",
-                                    avatar=f"{BASE_AVATAR_URL}/human-64px.png",
+                                        "user",
+                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
                                 ):
                                     st.write(st.session_state["past"][i])
         with col2:
@@ -221,7 +226,7 @@ def main():
 
             position = len(st.session_state["generated"]) - 1
             if (position >= 0) and (
-                st.session_state["generated"][position] != NO_ANSWER_MSG
+                    st.session_state["generated"][position] != NO_ANSWER_MSG
             ):
                 st.markdown("Question:")
                 st.code(
@@ -309,6 +314,7 @@ def main():
                 "![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)"
             )
 
+
 def get_bedrock_credentials(region_name):
     session = boto3.session.Session()
     client = session.client(service_name="secretsmanager", region_name=region_name)
@@ -324,7 +330,18 @@ def get_bedrock_credentials(region_name):
 
     return access_key, secret_key
 
-def get_rds_uri(region_name):
+
+def get_rds_uri(region_name: str) -> str:
+    """
+    Construct a URI that can be used to connect to the RDS DB
+
+    This function will retrieve the required values from AWS Secrets Manager and construct
+    a URI that can be used by SQLAlchemy for connecting to the source DB.
+
+    Parameters
+    ----------
+    region_name : Name of the region where the secret is stored
+    """
     # SQLAlchemy 2.0 reference: https://docs.sqlalchemy.org/en/20/dialects/postgresql.html
     # URI format: postgresql+psycopg2://user:pwd@hostname:port/dbname
 
@@ -360,7 +377,7 @@ def load_samples():
     # Load the sql examples for few-shot prompting examples
     sql_samples = None
 
-    with open("hotel_examples.yaml", "r") as stream:
+    with open("assets/hotel_examples.yaml", "r") as stream:
         sql_samples = yaml.safe_load(stream)
 
     return sql_samples
@@ -399,7 +416,7 @@ def load_few_shot_chain(llm, db, examples):
         llm,
         db,
         prompt=few_shot_prompt,
-        use_query_checker=True, 
+        use_query_checker=True,
         verbose=True,
         return_intermediate_steps=True,
         memory=memory
