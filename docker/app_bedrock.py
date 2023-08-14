@@ -60,11 +60,11 @@ def main():
 
     NO_ANSWER_MSG = "Sorry, I was unable to answer your question."
 
-    access_key, secret_key = get_bedrock_credentials(REGION_NAME)
-    boto3_kwargs = dict(
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key
-    )
+    if 'USE_AWS_PROFILE' in os.environ:
+        boto3_kwargs = {}
+    else:
+        access_key, secret_key = get_bedrock_credentials(REGION_NAME)
+        boto3_kwargs = {'aws_access_key_id': access_key, 'aws_secret_access_key': secret_key}
 
     config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
     bedrock_client = boto3.client(service_name='bedrock', region_name='us-east-1', **boto3_kwargs, config=config)
@@ -72,16 +72,14 @@ def main():
                           "temperature": 0.5,
                           "top_k": 250,
                           "stop_sequences": ["\n\n"],
-                          "top_p": 1
-                          }
+                          "top_p": 1}
 
     # titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
     anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier)
     llm = anthropic_llm
 
     # define datasource uri
-    logging.error(os.environ)
-    rds_uri = os.environ.get('DB_URI', get_rds_uri(REGION_NAME))
+    rds_uri = get_rds_uri(REGION_NAME)
     db = SQLDatabase.from_uri(rds_uri)
 
     # load examples for few-shot prompting
@@ -197,7 +195,7 @@ def main():
                                         avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
                                     st.text(st.session_state["generated"][i])
-                                    st.text(st.session_state["generated"][i]["output"])
+                                    st.text(st.session_state["generated"][i]["result"])
                                     # st.code(st.session_state["generated"][i]["result"], language="text")
                                 with st.chat_message(
                                         "user",
@@ -229,26 +227,18 @@ def main():
                     st.session_state["generated"][position] != NO_ANSWER_MSG
             ):
                 st.markdown("Question:")
-                st.code(
-                    st.session_state["generated"][position]["query"], language="text"
-                )
+                st.code(st.session_state["generated"][position]["query"], language="text")
 
                 st.markdown("SQL Query:")
-                st.code(
-                    st.session_state["generated"][position]["intermediate_steps"][1],
-                    language="sql",
-                )
+                st.code(st.session_state["generated"][position]["intermediate_steps"][1],
+                        language="sql")
 
                 st.markdown("Results:")
-                st.code(
-                    st.session_state["generated"][position]["intermediate_steps"][3],
-                    language="python",
-                )
+                st.code(st.session_state["generated"][position]["intermediate_steps"][3],
+                        language="python")
 
                 st.markdown("Answer:")
-                st.code(
-                    st.session_state["generated"][position]["output"], language="text"
-                )
+                st.code(st.session_state["generated"][position]["result"], language="text")
 
                 data = ast.literal_eval(
                     st.session_state["generated"][position]["intermediate_steps"][3]
@@ -345,6 +335,10 @@ def get_rds_uri(region_name: str) -> str:
     # SQLAlchemy 2.0 reference: https://docs.sqlalchemy.org/en/20/dialects/postgresql.html
     # URI format: postgresql+psycopg2://user:pwd@hostname:port/dbname
 
+    # Did we receive a connection string? -> use it
+    if 'DB_URI' in os.environ:
+        return os.getenv('DB_URI')
+
     rds_username = None
     rds_password = None
     rds_endpoint = None
@@ -407,19 +401,17 @@ def load_few_shot_chain(llm, db, examples):
         example_selector=example_selector,
         example_prompt=example_prompt,
         prefix=_postgres_prompt + "Here are some examples:",
-        suffix=PROMPT_SUFFIX + "Relevant pieces of previous conversation: {history} (You do not need to use these pieces of information if not relevant)",
-        input_variables=["table_info", "input", "top_k", "history"],
+        suffix=PROMPT_SUFFIX,
+        input_variables=["table_info", "input", "top_k"],
     )
 
-    memory = ConversationBufferMemory(memory_key="history", input_key="input")
     return SQLDatabaseChain.from_llm(
         llm,
         db,
         prompt=few_shot_prompt,
-        use_query_checker=True,
+        use_query_checker=False,
         verbose=True,
         return_intermediate_steps=True,
-        memory=memory
     )
 
 

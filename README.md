@@ -31,5 +31,5 @@ docker run -d --rm -e POSTGRES_PASSWORD=[DB_PASSWORD] -e POSTGRES_DB=wb_hotels -
 You can then instruct the code to use the local DB through an environment variable:
 
 ```bash
-DB_URI="postgresql+psycopg2://postgres:[DB_PASSWORD]@localhost:5432/wb_hotels" streamlit run app_bedrock.py
+DB_URI="postgresql+psycopg2://postgres:[DB_PASSWORD]@localhost:5432/wb_hotels" USE_AWS_PROFILE=true streamlit run app_bedrock.py
 ```
