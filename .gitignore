@@ -361,3 +361,6 @@ data/*.txt
 
 .idea/
 src/dependencies/*.whl
+
+# We do not want to commit secrets to git
+docker-compose.yml
