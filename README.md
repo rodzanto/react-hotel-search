@@ -20,9 +20,15 @@ Repo forked from [AWS Solutions Library repo](https://github.com/aws-solutions-l
 
 ## Running locally
 
-You can run a development environment locally using Docker. First, make sure
-to copy the botocore & boto3 whl files from the BedRock SDK into
-[`dependencies`](src/dependencies), then start the environment by running:
+You can run a development environment locally using Docker:
+
+1. Copy the botocore & boto3 whl files from the BedRock SDK into
+   [`dependencies`](src/dependencies).
+2. Modify the value of the `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY` variables in 
+   [`docker-compose.yml`](docker-compose.yml) for an account that has access
+   to Bedrock.
+
+You can then run the environment using:
 
 ```bash
 docker compose up
