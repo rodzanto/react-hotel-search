@@ -33,11 +33,12 @@ RUN apt-get update && \
     rm -rf ./dependencies && \
     pip install watchdog
 
-WORKDIR /home/appuser/
+WORKDIR /home/appuser/app/
 
 # copy required files to image
 COPY --chown=appuser:appgroup static static
 COPY --chown=appuser:appgroup assets assets
+COPY --chown=appuser:appgroup .streamlit .streamlit
 COPY --chown=appuser:appgroup app_bedrock.py app.py
 
 EXPOSE 8501
