@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./assets/wb_hotels.sql:/docker-entrypoint-initdb.d/00_wb_hotels.sql
+    environment:
+      - POSTGRES_PASSWORD=wdbQDPDKGYHwpZdVJ4Jr
+      - POSTGRES_DB=wb_hotels
+    networks:
+      - backend
+
+  react-search:
+    restart: always
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app
+    environment:
+      - DB_URI=postgresql+psycopg2://postgres:wdbQDPDKGYHwpZdVJ4Jr@postgres:5432/wb_hotels
+      - USE_AWS_PROFILE=true
+    networks:
+      - backend
+      - frontend
+    build: ./src/
+
+networks:
+  backend:
+  frontend:
