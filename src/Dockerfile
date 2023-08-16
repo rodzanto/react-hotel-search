@@ -39,7 +39,7 @@ WORKDIR /home/appuser/app/
 COPY --chown=appuser:appgroup static static
 COPY --chown=appuser:appgroup assets assets
 COPY --chown=appuser:appgroup .streamlit .streamlit
-COPY --chown=appuser:appgroup app_bedrock.py app.py
+COPY --chown=appuser:appgroup app.py app.py
 
 EXPOSE 8501
 
