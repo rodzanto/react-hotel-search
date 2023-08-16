@@ -4,8 +4,6 @@ services:
   postgres:
     image: postgres:15
     restart: always
-    ports:
-      - "5432:5432"
     volumes:
       - ./assets/wb_hotels.sql:/docker-entrypoint-initdb.d/00_wb_hotels.sql
     environment:
