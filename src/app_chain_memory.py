@@ -1,9 +1,8 @@
-# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and OpenAI's LLM models via their API.
-# Author: Gary A. Stafford (garystaf@amazon.com)
-# Date: 2023-07-17
+# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and Bedrock LLM models via the API.
 # Application expects the following environment variables (adjust for your environment):
 # export REGION_NAME="us-east-1"
-# Usage: streamlit run app_openai.py --server.runOnSave true
+# export MODEL_NAME="anthropic.claude-v2"
+# Usage: streamlit run app_bedrock.py --server.runOnSave true
 
 import ast
 import json
@@ -32,12 +31,12 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 
 REGION_NAME = os.environ.get("REGION_NAME", "eu-west-1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
+#MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
+MODEL_NAME = "anthropic.claude-v2"
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = (
     "https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static"
 )
-
 
 def main():
     st.set_page_config(
@@ -69,7 +68,7 @@ def main():
     inference_modifier = {'max_tokens_to_sample':4096, 
                         "temperature":0.5,
                         "top_k":250,
-                        "stop_sequences": ["\n\nQuestion"],
+                        "stop_sequences": ["\n\n"],
                         "top_p":1
                             }
 
@@ -97,12 +96,11 @@ def main():
     tools.append(sql_tool)
 
     conversational_agent = initialize_agent(
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
         tools=tools, 
         llm=llm,
-        #return_intermediate_steps=True,
         verbose=True,
-        #max_iterations=1,
+        max_iterations=1,
         memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output", return_messages=True),
     )  
 
@@ -137,7 +135,7 @@ def main():
                 st.markdown(" ")
                 with st.expander("Click here for sample questions..."):
                     st.markdown(
-                         """
+                        """
                         - Simple
                             - How many hotels are there?
                             - What are the best rated hotels in Barcelona?                            
@@ -167,14 +165,15 @@ def main():
                     with st.spinner(text="In progress..."):
                         st.session_state.past.append(user_input)
                         try:
-                            output = conversational_agent({"input":user_input})
-                            st.session_state.generated.append(output)
+                            output = sql_db_chain(user_input)
+                            #output = conversational_agent({"input":user_input})
+
                             print("conversational_agent out:")
                             print(output)
-                            output2 = sql_db_chain(user_input)
-                            print("conversational_agent out:")
-                            print(output2)
-                            
+                            print("SQL chain out:")
+                            #print(output2)
+
+                            st.session_state.generated.append(output)
                             logging.info(st.session_state["query"])
                             logging.info(st.session_state["generated"])
                         except Exception as exc:
@@ -192,7 +191,8 @@ def main():
                                     "assistant",
                                     avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
-                                    st.text(st.session_state["generated"][i]["result"])
+                                    st.text(st.session_state["generated"][i])
+                                    st.text(st.session_state["generated"][i]["output"])
                                     #st.code(st.session_state["generated"][i]["result"], language="text")
                                 with st.chat_message(
                                     "user",
@@ -242,7 +242,7 @@ def main():
 
                 st.markdown("Answer:")
                 st.code(
-                    st.session_state["generated"][position]["result"], language="text"
+                    st.session_state["generated"][position]["output"], language="text"
                 )
 
                 data = ast.literal_eval(
@@ -262,14 +262,6 @@ def main():
             st.markdown(
                 """
             [Natural language query (NLQ)](https://www.yellowfinbi.com/glossary/natural-language-query), according to Yellowfin, enables analytics users to ask questions of their data. It parses for keywords and generates relevant answers sourced from related databases, with results typically delivered as a report, chart or textual explanation that attempt to answer the query, and provide depth of understanding.
-            """
-            )
-            st.markdown(" ")
-
-            st.markdown("##### The MoMa Collection Datasets")
-            st.markdown(
-                """
-            [The Museum of Modern Art (MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).
             """
             )
             st.markdown(" ")
@@ -398,17 +390,19 @@ def load_few_shot_chain(llm, db, examples):
         example_selector=example_selector,
         example_prompt=example_prompt,
         prefix=_postgres_prompt + "Here are some examples:",
-        suffix=PROMPT_SUFFIX,
-        input_variables=["table_info", "input", "top_k"],
+        suffix=PROMPT_SUFFIX + "Relevant pieces of previous conversation: {history} (You do not need to use these pieces of information if not relevant)",
+        input_variables=["table_info", "input", "top_k", "history"],
     )
 
+    memory = ConversationBufferMemory(memory_key="history", input_key="input")
     return SQLDatabaseChain.from_llm(
         llm,
         db,
         prompt=few_shot_prompt,
-        use_query_checker=False, 
+        use_query_checker=True, 
         verbose=True,
         return_intermediate_steps=True,
+        memory=memory
     )
 
 
