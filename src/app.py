@@ -57,12 +57,12 @@ def main():
     # st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
     NO_ANSWER_MSG = "Sorry, I was unable to answer your question."
-    
-    access_key, secret_key = get_bedrock_credentials(REGION_NAME)
-    boto3_kwargs = dict(
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key
-    )
+
+    if 'USE_AWS_PROFILE' in os.environ:
+        boto3_kwargs = {}
+    else:
+        access_key, secret_key = get_bedrock_credentials(REGION_NAME)
+        boto3_kwargs = {'aws_access_key_id': access_key, 'aws_secret_access_key': secret_key}
 
     config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
     bedrock_client = boto3.client(service_name='bedrock', region_name='us-east-1', **boto3_kwargs, config=config)
@@ -336,6 +336,9 @@ def get_rds_uri(region_name):
     # SQLAlchemy 2.0 reference: https://docs.sqlalchemy.org/en/20/dialects/postgresql.html
     # URI format: postgresql+psycopg2://user:pwd@hostname:port/dbname
 
+    if 'DB_URI' in os.environ:
+        return os.getenv('DB_URI')
+
     rds_username = None
     rds_password = None
     rds_endpoint = None
@@ -368,7 +371,7 @@ def load_samples():
     # Load the sql examples for few-shot prompting examples
     sql_samples = None
 
-    with open("hotel_examples.yaml", "r") as stream:
+    with open("assets/hotel_examples.yaml", "r") as stream:
         sql_samples = yaml.safe_load(stream)
 
     return sql_samples
