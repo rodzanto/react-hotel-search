@@ -1,13 +1,11 @@
 """SQL agent extended to work with Webbeds data."""
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from langchain.agents.agent import AgentExecutor, BaseSingleActionAgent
-from langchain.agents.agent_toolkits.sql.prompt import (
-    SQL_PREFIX,
-    SQL_SUFFIX,
-)
+from langchain.agents.agent import AgentExecutor
+from langchain.agents.conversational.prompt import (PREFIX, FORMAT_INSTRUCTIONS, SUFFIX)
+from langchain.agents.agent_toolkits.sql.prompt import (SQL_PREFIX,
+                                                        SQL_SUFFIX)
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from langchain.agents.mrkl.prompt import FORMAT_INSTRUCTIONS
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.agents.conversational.base import ConversationalAgent
@@ -17,7 +15,7 @@ def create_sql_agent(llm: BaseLanguageModel,
                      toolkit: SQLDatabaseToolkit,
                      callback_manager: Optional[BaseCallbackManager] = None,
                      prefix: str = SQL_PREFIX,
-                     suffix: Optional[str] = SQL_SUFFIX,
+                     suffix: Optional[str] = SUFFIX,
                      format_instructions: str = FORMAT_INSTRUCTIONS,
                      top_k: int = 10,
                      max_iterations: Optional[int] = 15,
@@ -35,6 +33,7 @@ def create_sql_agent(llm: BaseLanguageModel,
                                                    tools,
                                                    prefix=prefix,
                                                    format_instructions=format_instructions,
+                                                   suffix=suffix,
                                                    verbose=True,
                                                    **kwargs)
 
@@ -62,20 +61,10 @@ if __name__ == '__main__':
     db = SQLDatabase.from_uri('postgresql+psycopg2://postgres:wdbQDPDKGYHwpZdVJ4Jr@localhost:5432/wb_hotels')
     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
     memory = ConversationBufferMemory(memory_key="chat_history")
-    suffix = """Begin!
-
-    Previous conversation history:
-    {chat_history}
-
-    New input: {input}
-
-    Thought: I should look at the tables in the database to see what I can query.  Then I should query the schema of the most relevant tables.
-    {agent_scratchpad}"""
     agent_executor = create_sql_agent(llm=llm,
                                       toolkit=toolkit,
                                       agent_executor_kwargs={'memory': memory},
                                       verbose=True,
-                                      max_execution_time=5,
                                       format_instructions='''To use a tool, please use the following format:
 
     ```
@@ -93,16 +82,18 @@ if __name__ == '__main__':
     ```''',
                                       prefix='''Assistant is a large language model trained by Amazon.
 
-    Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+                                      Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
 
-    Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+                                      Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
 
-    Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
+                                      Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
 
-    TOOLS:
-    ------
-    Assistant has access to the following tools:
-    ''')
+                                      Assistant has access to a database whose main table name is wb_hotels that contains information about hotels in different cities, Assistant can query it to get details about hotels.
 
-    agent_executor.run(input='Describe the wb_hotels table')
-    agent_executor.run(input="What is the first letter in the table's name?")
+                                      TOOLS:
+                                      ------
+                                      Assistant has access to the following tools:
+                                      ''')
+
+    agent_executor.run(input='How many hotels are there?')
+    agent_executor.run(input="How many of those are in CADIZ?")
