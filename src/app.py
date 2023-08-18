@@ -66,15 +66,15 @@ def main():
 
     config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
     bedrock_client = boto3.client(service_name='bedrock', region_name='us-east-1', **boto3_kwargs, config=config)
-    inference_modifier = {'max_tokens_to_sample':4096, 
-                        "temperature":0.5,
-                        "top_k":250,
-                        "stop_sequences": ["\n\nQuestion"],
-                        "top_p":1
-                            }
+    inference_modifier = {'max_tokens_to_sample': 4096,
+                          "temperature": 0.5,
+                          "top_k": 250,
+                          "stop_sequences": ["\n\nQuestion"],
+                          "top_p": 1
+                          }
 
-    #titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
-    anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier )
+    # titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
+    anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier)
     llm = anthropic_llm
 
     # define datasource uri
@@ -98,13 +98,14 @@ def main():
 
     conversational_agent = initialize_agent(
         agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        tools=tools, 
+        tools=tools,
         llm=llm,
-        #return_intermediate_steps=True,
+        # return_intermediate_steps=True,
         verbose=True,
-        #max_iterations=1,
-        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output", return_messages=True),
-    )  
+        # max_iterations=1,
+        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output",
+                                        return_messages=True),
+    )
 
     # store the initial value of widgets in session state
     if "visibility" not in st.session_state:
@@ -137,18 +138,18 @@ def main():
                 st.markdown(" ")
                 with st.expander("Click here for sample questions..."):
                     st.markdown(
-                         """
-                        - Simple
-                            - How many hotels are there?
-                            - What are the best rated hotels in Barcelona?                            
-                        - Moderate
-                            - Show me 5 hotels with 4 star rating
-                        - Complex
-                            - TBD
-                        - Unrelated to the Dataset
-                            - Give me a recipe for chocolate cake.
-                            - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup final?
-                    """
+                        """
+                       - Simple
+                           - How many hotels are there?
+                           - What are the best rated hotels in Barcelona?                            
+                       - Moderate
+                           - Show me 5 hotels with 4 star rating
+                       - Complex
+                           - TBD
+                       - Unrelated to the Dataset
+                           - Give me a recipe for chocolate cake.
+                           - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup final?
+                   """
                     )
                 st.markdown(" ")
             with st.container():
@@ -167,14 +168,14 @@ def main():
                     with st.spinner(text="In progress..."):
                         st.session_state.past.append(user_input)
                         try:
-                            output = conversational_agent({"input":user_input})
+                            output = conversational_agent({"input": user_input})
                             st.session_state.generated.append(output)
                             print("conversational_agent out:")
                             print(output)
                             output2 = sql_db_chain(user_input)
                             print("conversational_agent out:")
                             print(output2)
-                            
+
                             logging.info(st.session_state["query"])
                             logging.info(st.session_state["generated"])
                         except Exception as exc:
@@ -186,28 +187,28 @@ def main():
                     with col1:
                         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
                             if (i >= 0) and (
-                                st.session_state["generated"][i] != NO_ANSWER_MSG
+                                    st.session_state["generated"][i] != NO_ANSWER_MSG
                             ):
                                 with st.chat_message(
-                                    "assistant",
-                                    avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
+                                        "assistant",
+                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
                                     st.text(st.session_state["generated"][i]["result"])
-                                    #st.code(st.session_state["generated"][i]["result"], language="text")
+                                    # st.code(st.session_state["generated"][i]["result"], language="text")
                                 with st.chat_message(
-                                    "user",
-                                    avatar=f"{BASE_AVATAR_URL}/human-64px.png",
+                                        "user",
+                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
                                 ):
                                     st.write(st.session_state["past"][i])
                             else:
                                 with st.chat_message(
-                                    "assistant",
-                                    avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
+                                        "assistant",
+                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
                                 ):
                                     st.write(NO_ANSWER_MSG)
                                 with st.chat_message(
-                                    "user",
-                                    avatar=f"{BASE_AVATAR_URL}/human-64px.png",
+                                        "user",
+                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
                                 ):
                                     st.write(st.session_state["past"][i])
         with col2:
@@ -221,7 +222,7 @@ def main():
 
             position = len(st.session_state["generated"]) - 1
             if (position >= 0) and (
-                st.session_state["generated"][position] != NO_ANSWER_MSG
+                    st.session_state["generated"][position] != NO_ANSWER_MSG
             ):
                 st.markdown("Question:")
                 st.code(
@@ -317,6 +318,7 @@ def main():
                 "![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)"
             )
 
+
 def get_bedrock_credentials(region_name):
     session = boto3.session.Session()
     client = session.client(service_name="secretsmanager", region_name=region_name)
@@ -331,6 +333,7 @@ def get_bedrock_credentials(region_name):
         raise e
 
     return access_key, secret_key
+
 
 def get_rds_uri(region_name):
     # SQLAlchemy 2.0 reference: https://docs.sqlalchemy.org/en/20/dialects/postgresql.html
@@ -409,7 +412,7 @@ def load_few_shot_chain(llm, db, examples):
         llm,
         db,
         prompt=few_shot_prompt,
-        use_query_checker=False, 
+        use_query_checker=False,
         verbose=True,
         return_intermediate_steps=True,
     )
