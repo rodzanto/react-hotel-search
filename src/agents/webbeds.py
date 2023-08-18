@@ -34,7 +34,6 @@ def create_sql_agent(llm: BaseLanguageModel,
                                                    prefix=prefix,
                                                    format_instructions=format_instructions,
                                                    suffix=suffix,
-                                                   verbose=True,
                                                    **kwargs)
 
     return AgentExecutor.from_agent_and_tools(agent=agent,
