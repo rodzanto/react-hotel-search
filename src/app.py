@@ -5,23 +5,22 @@
 # export REGION_NAME="us-east-1"
 # Usage: streamlit run app_openai.py --server.runOnSave true
 
+import os
 import ast
 import json
-import logging
-import os
-
+import yaml
 import boto3
+import logging
 import pandas as pd
 import streamlit as st
-import yaml
+from agents.webbeds import create_sql_agent
 from botocore.exceptions import ClientError
-from langchain import (FewShotPromptTemplate, PromptTemplate, SQLDatabase)
+from langchain import FewShotPromptTemplate, PromptTemplate, SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
-from langchain.chains.sql_database.prompt import (PROMPT_SUFFIX,
-                                                  _postgres_prompt)
+from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from langchain.chains.sql_database.prompt import PROMPT_SUFFIX, _postgres_prompt
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain.prompts.example_selector.semantic_similarity import \
-    SemanticSimilarityExampleSelector
+from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 from langchain.vectorstores import Chroma
 from botocore.client import Config as BotoConfig
 from langchain.llms.bedrock import Bedrock
@@ -31,8 +30,8 @@ from langchain.agents import Tool
 from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 
-REGION_NAME = os.environ.get("REGION_NAME", "eu-west-1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "anthropic.claude-v2")
+REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
+MODEL_NAME = os.environ.get('MODEL_NAME', 'anthropic.claude-v2')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = (
     "https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static"
@@ -58,54 +57,81 @@ def main():
 
     NO_ANSWER_MSG = "Sorry, I was unable to answer your question."
 
-    if 'USE_AWS_PROFILE' in os.environ:
-        boto3_kwargs = {}
-    else:
+    # We'll create an ad-hoc boto3 client so that the Bedrock client can use
+    # different credentials from the rest of the code (if requested)
+    boto3_kwargs = {}
+    if 'USE_AWS_PROFILE' not in os.environ:
         access_key, secret_key = get_bedrock_credentials(REGION_NAME)
         boto3_kwargs = {'aws_access_key_id': access_key, 'aws_secret_access_key': secret_key}
-
     config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
-    bedrock_client = boto3.client(service_name='bedrock', region_name='us-east-1', **boto3_kwargs, config=config)
-    inference_modifier = {'max_tokens_to_sample': 4096,
+    bedrock_client = boto3.client(service_name='bedrock',
+                                  region_name='us-east-1',
+                                  config=config,
+                                  **boto3_kwargs)
+    inference_params = {'max_tokens_to_sample': 4096,
                           "temperature": 0.5,
                           "top_k": 250,
                           "stop_sequences": ["\n\nQuestion"],
-                          "top_p": 1
-                          }
+                          "top_p": 1}
 
-    # titan_llm = Bedrock(model_id="amazon.titan-tg1-large", client=boto3_bedrock)
-    anthropic_llm = Bedrock(model_id=MODEL_NAME, client=bedrock_client, model_kwargs=inference_modifier)
-    llm = anthropic_llm
-
-    # define datasource uri
+    # Connect to the DB
     rds_uri = get_rds_uri(REGION_NAME)
     db = SQLDatabase.from_uri(rds_uri)
 
     # load examples for few-shot prompting
     examples = load_samples()
 
+    # Create the LangChain agent and equip it with a toolkit
+    llm = Bedrock(model_id=MODEL_NAME,
+                  client=bedrock_client,
+                  model_kwargs=inference_params)
+    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
     sql_db_chain = load_few_shot_chain(llm, db, examples)
+    tools = load_tools(
+        ["llm-math"],
+        llm=llm
+    )
     sql_tool = Tool(
         name='Hotels DB',
         func=sql_db_chain.run,
         description="Useful for when you need to answer questions about hotels and their ratings."
     )
-    tools = load_tools(
-        ["llm-math"],
-        llm=llm
-    )
+
     tools.append(sql_tool)
 
-    conversational_agent = initialize_agent(
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        tools=tools,
-        llm=llm,
-        # return_intermediate_steps=True,
-        verbose=True,
-        # max_iterations=1,
-        memory=ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output",
-                                        return_messages=True),
-    )
+    agent_executor = create_sql_agent(llm=llm,
+                                      toolkit=toolkit,
+                                      agent_executor_kwargs={'memory': ConversationBufferMemory(memory_key="chat_history")},
+                                      verbose=True,
+                                      format_instructions='''To use a tool, please use the following format:
+
+    ```
+    Thought: Do I need to use a tool? Yes
+    Action: the action to take, should be one of [{tool_names}]
+    Action Input: the input to the action
+    Observation: the result of the action
+    ```
+
+    When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+
+    ```
+    Thought: Do I need to use a tool? No
+    {ai_prefix}: [your response here]
+    ```''',
+                                      prefix='''Assistant is a large language model trained by Amazon.
+
+                                          Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+
+                                          Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+
+                                          Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
+
+                                          Assistant has access to a {dialect} database whose main table name is wb_hotels that contains information about hotels in different cities, Assistant can query it to get details about hotels.
+
+                                          TOOLS:
+                                          ------
+                                          Assistant has access to the following tools:
+                                          ''')
 
     # store the initial value of widgets in session state
     if "visibility" not in st.session_state:
@@ -168,7 +194,7 @@ def main():
                     with st.spinner(text="In progress..."):
                         st.session_state.past.append(user_input)
                         try:
-                            output = conversational_agent({"input": user_input})
+                            output = agent_executor({"input": user_input})
                             st.session_state.generated.append(output)
                             print("conversational_agent out:")
                             print(output)
@@ -341,12 +367,6 @@ def get_rds_uri(region_name):
 
     if 'DB_URI' in os.environ:
         return os.getenv('DB_URI')
-
-    rds_username = None
-    rds_password = None
-    rds_endpoint = None
-    rds_port = None
-    rds_db_name = None
 
     session = boto3.session.Session()
     client = session.client(service_name="secretsmanager", region_name=region_name)
