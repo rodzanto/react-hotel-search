@@ -69,10 +69,10 @@ def main():
                                   config=config,
                                   **boto3_kwargs)
     inference_params = {'max_tokens_to_sample': 4096,
-                          "temperature": 0.5,
-                          "top_k": 250,
-                          "stop_sequences": ["\n\nQuestion"],
-                          "top_p": 1}
+                        "temperature": 0.5,
+                        "top_k": 250,
+                        "stop_sequences": ["\n\nQuestion"],
+                        "top_p": 1}
 
     # Connect to the DB
     rds_uri = get_rds_uri(REGION_NAME)
@@ -101,7 +101,8 @@ def main():
 
     agent_executor = create_sql_agent(llm=llm,
                                       toolkit=toolkit,
-                                      agent_executor_kwargs={'memory': ConversationBufferMemory(memory_key="chat_history")},
+                                      agent_executor_kwargs={
+                                          'memory': ConversationBufferMemory(memory_key="chat_history")},
                                       verbose=True,
                                       format_instructions='''To use a tool, please use the following format:
 
@@ -150,12 +151,12 @@ def main():
     if "query_text" not in st.session_state:
         st.session_state["query_text"] = []
 
-    tab1, tab2, tab3 = st.tabs(["Chatbot", "Details", "Technologies"])
+    chat_tab, details_tab, technologies_tab = st.tabs(["Chatbot", "Details", "Technologies"])
 
-    with tab1:
-        col1, col2 = st.columns([6, 1], gap="medium")
+    with chat_tab:
+        main_col, widgets_col = st.columns([6, 1], gap="medium")
 
-        with col1:
+        with main_col:
             with st.container():
                 st.markdown("## Hotel Natural Language Query")
                 st.markdown(
@@ -163,8 +164,7 @@ def main():
                 )
                 st.markdown(" ")
                 with st.expander("Click here for sample questions..."):
-                    st.markdown(
-                        """
+                    st.markdown("""
                        - Simple
                            - How many hotels are there?
                            - What are the best rated hotels in Barcelona?                            
@@ -175,8 +175,7 @@ def main():
                        - Unrelated to the Dataset
                            - Give me a recipe for chocolate cake.
                            - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup final?
-                   """
-                    )
+                   """)
                 st.markdown(" ")
             with st.container():
                 input_text = st.text_input(
@@ -210,7 +209,7 @@ def main():
 
                 # https://discuss.streamlit.io/t/streamlit-chat-avatars-not-working-on-cloud/46713/2
                 if st.session_state["generated"]:
-                    with col1:
+                    with main_col:
                         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
                             if (i >= 0) and (
                                     st.session_state["generated"][i] != NO_ANSWER_MSG
@@ -237,10 +236,10 @@ def main():
                                         avatar=f"{BASE_AVATAR_URL}/human-64px.png",
                                 ):
                                     st.write(st.session_state["past"][i])
-        with col2:
+        with widgets_col:
             with st.container():
                 st.button("clear chat", on_click=clear_session)
-    with tab2:
+    with details_tab:
         with st.container():
             st.markdown("### Details")
             st.markdown("Bedrock Model:")
@@ -280,7 +279,7 @@ def main():
                     st.markdown("Pandas DataFrame:")
                     df = pd.DataFrame(data)
                     df
-    with tab3:
+    with technologies_tab:
         with st.container():
             st.markdown("### Technologies")
             st.markdown(" ")
