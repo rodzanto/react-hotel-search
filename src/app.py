@@ -1,12 +1,8 @@
 # Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and OpenAI's LLM models via their API.
 # Author: Gary A. Stafford (garystaf@amazon.com)
 # Date: 2023-07-17
-# Application expects the following environment variables (adjust for your environment):
-# export REGION_NAME="us-east-1"
-# Usage: streamlit run app_openai.py --server.runOnSave true
 
 import os
-import ast
 import json
 import yaml
 import boto3
@@ -25,8 +21,6 @@ from langchain.vectorstores import Chroma
 from botocore.client import Config as BotoConfig
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
-from langchain.agents import load_tools
-from langchain.agents import Tool
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 MODEL_NAME = os.environ.get('MODEL_NAME', 'anthropic.claude-v2')
@@ -83,6 +77,8 @@ def main():
         db = SQLDatabase.from_uri(rds_uri)
         toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
+        # Create the Langchain Agent
+        prompt_parts = yaml.safe_load(open('assets/prompt_template.yaml', 'rb'))
         st.session_state['agent_executor'] = create_sql_agent(llm=llm,
                                                               toolkit=toolkit,
                                                               agent_executor_kwargs={'memory':
@@ -92,35 +88,9 @@ def main():
                                                                   'return_intermediate_steps': True},
                                                               verbose=True,
                                                               early_stopping_method='generate',
-                                                              prefix='''Assistant is a large language model trained by Amazon.
-    
-    Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
-    
-    Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
-    
-    Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
-    
-    Assistant has access to a {dialect} database whose main table name is wb_hotels that contains information about hotels in different cities, Assistant can query it to get details about hotels.
-    
-    TOOLS:
-    ------
-    Assistant has access to the following tools:
-    ''',
-                                                              format_instructions='''To use a tool, please use the following format:
-    
-        ```
-        Thought: Do I need to use a tool? Yes
-        Action: the action to take, should be one of [{tool_names}]
-        Action Input: the input to the action
-        Observation: the result of the action
-        ```
-    
-        When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
-    
-        ```
-        Thought: Do I need to use a tool? No
-        {ai_prefix}: [your response here]
-    ```''')
+                                                              prefix=prompt_parts['prefix'],
+                                                              format_instructions=prompt_parts['format_instructions'],
+                                                              suffix=prompt_parts['suffix'])
 
     # store the initial value of widgets in session state
     if "visibility" not in st.session_state:
