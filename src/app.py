@@ -21,14 +21,13 @@ from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain.chains.sql_database.prompt import PROMPT_SUFFIX, _postgres_prompt
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
+from langchain.callbacks import StreamlitCallbackHandler
 from langchain.vectorstores import Chroma
 from botocore.client import Config as BotoConfig
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import load_tools
 from langchain.agents import Tool
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 MODEL_NAME = os.environ.get('MODEL_NAME', 'anthropic.claude-v2')
@@ -40,9 +39,10 @@ BASE_AVATAR_URL = (
 
 def main():
     st.set_page_config(
-        page_title="Natural Language Query (NLQ) Demo",
+        page_title="Webbeds Natural Language Query (NLQ) Demo",
         layout="wide",
         initial_sidebar_state="collapsed",
+        page_icon='static/favicon-32x32.png'
     )
 
     # # hide the hamburger bar menu
@@ -55,7 +55,7 @@ def main():
     # """
     # st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-    NO_ANSWER_MSG = "Sorry, I was unable to answer your question."
+    NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
 
     # We'll create an ad-hoc boto3 client so that the Bedrock client can use
     # different credentials from the rest of the code (if requested)
@@ -87,23 +87,20 @@ def main():
                   model_kwargs=inference_params)
     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
     sql_db_chain = load_few_shot_chain(llm, db, examples)
-    tools = load_tools(
-        ["llm-math"],
-        llm=llm
-    )
-    sql_tool = Tool(
-        name='Hotels DB',
-        func=sql_db_chain.run,
-        description="Useful for when you need to answer questions about hotels and their ratings."
-    )
+    tools = load_tools(["llm-math"], llm=llm)
+    sql_tool = Tool(name='Hotels DB', func=sql_db_chain.run,
+                    description="Useful for when you need to answer questions about hotels and their ratings.")
 
     tools.append(sql_tool)
 
     agent_executor = create_sql_agent(llm=llm,
                                       toolkit=toolkit,
-                                      agent_executor_kwargs={
-                                          'memory': ConversationBufferMemory(memory_key="chat_history")},
+                                      agent_executor_kwargs={'memory':
+                                                                 ConversationBufferMemory(memory_key='chat_history',
+                                                                                          output_key='output'),
+                                                             'return_intermediate_steps': True},
                                       verbose=True,
+                                      early_stopping_method='generate',
                                       format_instructions='''To use a tool, please use the following format:
 
     ```
@@ -178,28 +175,22 @@ def main():
                    """)
                 st.markdown(" ")
             with st.container():
-                input_text = st.text_input(
-                    "Ask a question:",
-                    "",
-                    key="query_text",
-                    placeholder="Your question here...",
-                    on_change=clear_text(),
-                )
+                input_text = st.text_input("Ask a question:", "", key="query_text",
+                                           placeholder="Your question here...",
+                                           on_change=clear_text())
                 logging.info(input_text)
 
                 user_input = st.session_state["query"]
 
                 if user_input:
+                    result_container = st.container()
                     with st.spinner(text="In progress..."):
                         st.session_state.past.append(user_input)
                         try:
-                            output = agent_executor({"input": user_input})
-                            st.session_state.generated.append(output)
-                            print("conversational_agent out:")
-                            print(output)
-                            output2 = sql_db_chain(user_input)
-                            print("conversational_agent out:")
-                            print(output2)
+                            st_callback = StreamlitCallbackHandler(result_container)
+
+                            answer = agent_executor(inputs={'input': user_input}, callbacks=[st_callback])
+                            st.session_state.generated.append(answer)
 
                             logging.info(st.session_state["query"])
                             logging.info(st.session_state["generated"])
@@ -211,30 +202,15 @@ def main():
                 if st.session_state["generated"]:
                     with main_col:
                         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
-                            if (i >= 0) and (
-                                    st.session_state["generated"][i] != NO_ANSWER_MSG
-                            ):
-                                with st.chat_message(
-                                        "assistant",
-                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
-                                ):
-                                    st.text(st.session_state["generated"][i]["result"])
-                                    # st.code(st.session_state["generated"][i]["result"], language="text")
-                                with st.chat_message(
-                                        "user",
-                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
-                                ):
+                            if (i >= 0) and (st.session_state["generated"][i] != NO_ANSWER_MSG):
+                                with st.chat_message("assistant", avatar=f"{BASE_AVATAR_URL}/bot-64px.png"):
+                                    st.text(st.session_state["generated"][i]['output'])
+                                with st.chat_message("user", avatar=f"{BASE_AVATAR_URL}/human-64px.png"):
                                     st.write(st.session_state["past"][i])
                             else:
-                                with st.chat_message(
-                                        "assistant",
-                                        avatar=f"{BASE_AVATAR_URL}/bot-64px.png",
-                                ):
+                                with st.chat_message("assistant", avatar=f"{BASE_AVATAR_URL}/bot-64px.png"):
                                     st.write(NO_ANSWER_MSG)
-                                with st.chat_message(
-                                        "user",
-                                        avatar=f"{BASE_AVATAR_URL}/human-64px.png",
-                                ):
+                                with st.chat_message("user", avatar=f"{BASE_AVATAR_URL}/human-64px.png"):
                                     st.write(st.session_state["past"][i])
         with widgets_col:
             with st.container():
@@ -245,40 +221,18 @@ def main():
             st.markdown("Bedrock Model:")
             st.code(MODEL_NAME, language="text")
 
-            position = len(st.session_state["generated"]) - 1
-            if (position >= 0) and (
-                    st.session_state["generated"][position] != NO_ANSWER_MSG
-            ):
-                st.markdown("Question:")
-                st.code(
-                    st.session_state["generated"][position]["query"], language="text"
-                )
+            position = len(st.session_state['generated']) - 1
+            if (position >= 0) and (st.session_state['generated'][position] != NO_ANSWER_MSG):
+                st.markdown('Question:')
+                st.code(st.session_state['generated'][position]['input'], language='text')
 
-                st.markdown("SQL Query:")
-                st.code(
-                    st.session_state["generated"][position]["intermediate_steps"][1],
-                    language="sql",
-                )
+                st.markdown('Raw history:')
+                st.code('\n-----\n'.join(['\n'.join([a[0].log, a[1]])
+                                          for a in st.session_state['generated'][position]['intermediate_steps']]),
+                        language='text')
 
-                st.markdown("Results:")
-                st.code(
-                    st.session_state["generated"][position]["intermediate_steps"][3],
-                    language="python",
-                )
-
-                st.markdown("Answer:")
-                st.code(
-                    st.session_state["generated"][position]["result"], language="text"
-                )
-
-                data = ast.literal_eval(
-                    st.session_state["generated"][position]["intermediate_steps"][3]
-                )
-                if len(data) > 0 and len(data[0]) > 1:
-                    df = None
-                    st.markdown("Pandas DataFrame:")
-                    df = pd.DataFrame(data)
-                    df
+                st.markdown('Answer:')
+                st.code(st.session_state["generated"][position]["output"], language="text")
     with technologies_tab:
         with st.container():
             st.markdown("### Technologies")
