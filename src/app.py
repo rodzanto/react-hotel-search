@@ -11,7 +11,6 @@ import json
 import yaml
 import boto3
 import logging
-import pandas as pd
 import streamlit as st
 from agents.webbeds import create_sql_agent
 from botocore.exceptions import ClientError
@@ -57,69 +56,70 @@ def main():
 
     NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
 
-    # We'll create an ad-hoc boto3 client so that the Bedrock client can use
-    # different credentials from the rest of the code (if requested)
-    boto3_kwargs = {}
-    if 'USE_AWS_PROFILE' not in os.environ:
-        access_key, secret_key = get_bedrock_credentials(REGION_NAME)
-        boto3_kwargs = {'aws_access_key_id': access_key, 'aws_secret_access_key': secret_key}
-    config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
-    bedrock_client = boto3.client(service_name='bedrock',
-                                  region_name='us-east-1',
-                                  config=config,
-                                  **boto3_kwargs)
-    inference_params = {'max_tokens_to_sample': 4096,
-                        "temperature": 0.5,
-                        "top_k": 250,
-                        "stop_sequences": ["\n\nQuestion"],
-                        "top_p": 1}
-
-    # Connect to the DB
-    rds_uri = get_rds_uri(REGION_NAME)
-    db = SQLDatabase.from_uri(rds_uri)
-
     # Create the LangChain agent and equip it with a toolkit
-    llm = Bedrock(model_id=MODEL_NAME,
-                  client=bedrock_client,
-                  model_kwargs=inference_params)
-    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+    if 'agent_executor' not in st.session_state.keys():
+        # We'll create an ad-hoc boto3 client so that the Bedrock client can use
+        # different credentials from the rest of the code (if requested)
+        boto3_kwargs = {}
+        if 'USE_AWS_PROFILE' not in os.environ:
+            access_key, secret_key = get_bedrock_credentials(REGION_NAME)
+            boto3_kwargs = {'aws_access_key_id': access_key, 'aws_secret_access_key': secret_key}
+        config = BotoConfig(connect_timeout=3, retries={"mode": "standard"})
+        bedrock_client = boto3.client(service_name='bedrock',
+                                      region_name='us-east-1',
+                                      config=config,
+                                      **boto3_kwargs)
 
-    agent_executor = create_sql_agent(llm=llm,
-                                      toolkit=toolkit,
-                                      agent_executor_kwargs={'memory':
-                                                                 ConversationBufferMemory(memory_key='chat_history',
-                                                                                          output_key='output'),
-                                                             'return_intermediate_steps': True},
-                                      verbose=True,
-                                      early_stopping_method='generate',
-                                      prefix='''Assistant is a large language model trained by Amazon.
+        llm = Bedrock(model_id='anthropic.claude-v2',
+                      client=bedrock_client,
+                      model_kwargs={'max_tokens_to_sample': 4096,
+                                    "temperature": 0.5,
+                                    "top_k": 250,
+                                    "stop_sequences": ["\n\nQuestion"],
+                                    "top_p": 1})
 
-Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+        # Connect to the DB
+        rds_uri = get_rds_uri(REGION_NAME)
+        db = SQLDatabase.from_uri(rds_uri)
+        toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
-Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
-
-Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
-
-Assistant has access to a {dialect} database whose main table name is wb_hotels that contains information about hotels in different cities, Assistant can query it to get details about hotels.
-
-TOOLS:
-------
-Assistant has access to the following tools:
-''',
-                                      format_instructions='''To use a tool, please use the following format:
-
-    ```
-    Thought: Do I need to use a tool? Yes
-    Action: the action to take, should be one of [{tool_names}]
-    Action Input: the input to the action
-    Observation: the result of the action
-    ```
-
-    When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
-
-    ```
-    Thought: Do I need to use a tool? No
-    {ai_prefix}: [your response here]
+        st.session_state['agent_executor'] = create_sql_agent(llm=llm,
+                                                              toolkit=toolkit,
+                                                              agent_executor_kwargs={'memory':
+                                                                  ConversationBufferMemory(
+                                                                      memory_key='chat_history',
+                                                                      output_key='output'),
+                                                                  'return_intermediate_steps': True},
+                                                              verbose=True,
+                                                              early_stopping_method='generate',
+                                                              prefix='''Assistant is a large language model trained by Amazon.
+    
+    Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
+    
+    Assistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.
+    
+    Overall, Assistant is a powerful tool that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist.
+    
+    Assistant has access to a {dialect} database whose main table name is wb_hotels that contains information about hotels in different cities, Assistant can query it to get details about hotels.
+    
+    TOOLS:
+    ------
+    Assistant has access to the following tools:
+    ''',
+                                                              format_instructions='''To use a tool, please use the following format:
+    
+        ```
+        Thought: Do I need to use a tool? Yes
+        Action: the action to take, should be one of [{tool_names}]
+        Action Input: the input to the action
+        Observation: the result of the action
+        ```
+    
+        When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+    
+        ```
+        Thought: Do I need to use a tool? No
+        {ai_prefix}: [your response here]
     ```''')
 
     # store the initial value of widgets in session state
@@ -138,6 +138,9 @@ Assistant has access to the following tools:
 
     if "query_text" not in st.session_state:
         st.session_state["query_text"] = []
+
+    # Get the agent executor from the Streamlit session store
+    agent_executor = st.session_state['agent_executor']
 
     chat_tab, details_tab, technologies_tab = st.tabs(["Chatbot", "Details", "Technologies"])
 
