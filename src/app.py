@@ -16,11 +16,23 @@ from misc.config import get_rds_uri, get_bedrock_credentials
 from streamlit.external.langchain import StreamlitCallbackHandler
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 
-
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = 'https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static'
 NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
+
+
+def clear_text():
+    st.session_state["query"] = st.session_state["query_text"]
+    st.session_state["query_text"] = ""
+
+
+def clear_session():
+    """
+    Delete all session variables from Streamlit
+    """
+    for key in st.session_state.keys():
+        del st.session_state[key]
 
 
 def main():
@@ -232,19 +244,6 @@ def main():
             st.markdown("![](app/static/github-24px-blk.png) [The MoMA Collection datasets on GitHub]"
                         "(https://github.com/MuseumofModernArt/collection)")
             st.markdown("![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)")
-
-
-def clear_text():
-    st.session_state["query"] = st.session_state["query_text"]
-    st.session_state["query_text"] = ""
-
-
-def clear_session():
-    """
-    Delete all session variables from Streamlit
-    """
-    for key in st.session_state.keys():
-        del st.session_state[key]
 
 
 if __name__ == "__main__":
