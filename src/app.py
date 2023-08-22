@@ -13,6 +13,11 @@ from langchain.memory import ConversationBufferMemory
 from misc.config import get_rds_uri, get_bedrock_credentials
 from streamlit.external.langchain import StreamlitCallbackHandler
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
+from langchain.prompts.example_selector.semantic_similarity import \
+    SemanticSimilarityExampleSelector
+from langchain.vectorstores import Chroma
+import json
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
@@ -38,8 +43,29 @@ def clear_session():
 
 def few_shot_examples(**kwargs) -> str:
     print(kwargs)
-    return ''
+    with open("assets/hotel_examples.yaml", "r") as stream:
+        sql_samples = yaml.safe_load(stream)
 
+    local_embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
+
+    example_selector = SemanticSimilarityExampleSelector.from_examples(
+        sql_samples,
+        local_embeddings,
+        Chroma,
+        k=min(2, len(sql_samples)),
+    )
+    
+    similar_examples = example_selector.select_examples({'input': kwargs.get('input')})
+    similar_examples_str = []
+    for example in similar_examples:
+        for k, v in example.items():
+            similar_examples_str.append(f"{k}: {v}")
+    print("----------------- Similar examples ------------------")
+    print('\n'.join(similar_examples_str))
+    print("-----------------------------------------------------")
+    return '\n'.join(similar_examples_str)
 
 def main():
     st.set_page_config(page_title="Webbeds Natural Language Query (NLQ) Demo",
@@ -128,9 +154,10 @@ def main():
                            - How many hotels are there?
                            - What are the best rated hotels in Barcelona?                            
                        - Moderate
-                           - Show me 5 hotels with 4 star rating
+                           - Find me a hotel in Madrid with the same rating as Apartamentos plaza de la luz, Cadiz
                        - Complex
-                           - TBD
+                           - Show me an alternative for Fairmont Monte Carlo
+                           - Give me the name and address of 4 5 star hotels in Monaco
                        - Unrelated to the Dataset
                            - Give me a recipe for chocolate cake.
                            - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup?
