@@ -1,6 +1,4 @@
 # Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and Bedrock's LLM models via their API.
-# Author: Gary A. Stafford (garystaf@amazon.com)
-# Date: 2023-07-17
 
 import os
 import yaml
@@ -23,13 +21,16 @@ NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer y
 
 
 def clear_text():
+    """
+    Clear the text from the input
+    """
     st.session_state["query"] = st.session_state["query_text"]
     st.session_state["query_text"] = ""
 
 
 def clear_session():
     """
-    Delete all session variables from Streamlit
+    Delete all session variables from Streamlit, effectively restarting it
     """
     for key in st.session_state.keys():
         del st.session_state[key]
