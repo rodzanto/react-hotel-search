@@ -1,26 +1,21 @@
-# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and OpenAI's LLM models via their API.
+# Natural Language Query (NLQ) demo using Amazon RDS for PostgreSQL and Bedrock's LLM models via their API.
 # Author: Gary A. Stafford (garystaf@amazon.com)
 # Date: 2023-07-17
 
 import os
-import json
 import yaml
 import boto3
 import logging
 import streamlit as st
-from agents.webbeds import create_sql_agent
-from botocore.exceptions import ClientError
-from langchain import FewShotPromptTemplate, PromptTemplate, SQLDatabase
-from langchain_experimental.sql import SQLDatabaseChain
-from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from langchain.chains.sql_database.prompt import PROMPT_SUFFIX, _postgres_prompt
-from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
-from streamlit.external.langchain import StreamlitCallbackHandler
-from langchain.vectorstores import Chroma
-from botocore.client import Config as BotoConfig
+from langchain import SQLDatabase
 from langchain.llms.bedrock import Bedrock
+from agents.webbeds import create_sql_agent
+from botocore.client import Config as BotoConfig
 from langchain.memory import ConversationBufferMemory
+from misc.config import get_rds_uri, get_bedrock_credentials
+from streamlit.external.langchain import StreamlitCallbackHandler
+from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
@@ -119,7 +114,7 @@ def main():
                            - TBD
                        - Unrelated to the Dataset
                            - Give me a recipe for chocolate cake.
-                           - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup final?
+                           - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup?
                    """)
                 st.markdown(" ")
             with st.container():
@@ -187,156 +182,56 @@ def main():
             st.markdown(" ")
 
             st.markdown("##### Natural Language Query (NLQ)")
-            st.markdown(
-                """
-            [Natural language query (NLQ)](https://www.yellowfinbi.com/glossary/natural-language-query), according to Yellowfin, enables analytics users to ask questions of their data. It parses for keywords and generates relevant answers sourced from related databases, with results typically delivered as a report, chart or textual explanation that attempt to answer the query, and provide depth of understanding.
-            """
-            )
+            st.markdown("\n            [Natural language query "
+                        "(NLQ)](https://www.yellowfinbi.com/glossary/natural-language-query), according to Yellowfin, "
+                        "enables analytics users to ask questions of their data. It parses for keywords and generates "
+                        "relevant answers sourced from related databases, with results typically delivered as a "
+                        "report, chart or textual explanation that attempt to answer the query, and provide depth "
+                        "of understanding.\n"
+                        "            ")
             st.markdown(" ")
 
             st.markdown("##### The MoMa Collection Datasets")
-            st.markdown(
-                """
-            [The Museum of Modern Art (MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).
-            """
-            )
+            st.markdown("\n            [The Museum of Modern Art "
+                        "(MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 "
+                        "pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, "
+                        "encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the "
+                        "public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).\n")
             st.markdown(" ")
 
             st.markdown("##### Amazon SageMaker JumpStart Foundation Models")
-            st.markdown(
-                """
-            [Amazon SageMaker JumpStart Foundation Models](https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models.html) offers state-of-the-art foundation models for use cases such as content writing, image and code generation, question answering, copywriting, summarization, classification, information retrieval, and more.
-            """
-            )
+            st.markdown("\n            [Amazon SageMaker JumpStart Foundation Models]"
+                        "(https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models.html) "
+                        "offers state-of-the-art foundation models for use cases such as content writing, image and "
+                        "code generation, question answering, copywriting, summarization, classification, information "
+                        "retrieval, and more.\n")
             st.markdown(" ")
 
             st.markdown("##### LangChain")
-            st.markdown(
-                """
-            [LangChain](https://python.langchain.com/en/latest/index.html) is a framework for developing applications powered by language models. LangChain provides standard, extendable interfaces and external integrations.
-            """
-            )
+            st.markdown("\n            [LangChain](https://python.langchain.com/en/latest/index.html) is a framework "
+                        "for developing applications powered by language models. LangChain provides standard, "
+                        "extendable interfaces and external integrations.\n")
             st.markdown(" ")
 
             st.markdown("##### Chroma")
-            st.markdown(
-                """
-            [Chroma](https://www.trychroma.com/) is the open-source embedding database. Chroma makes it easy to build LLM apps by making knowledge, facts, and skills pluggable for LLMs.
-            """
-            )
+            st.markdown("\n            [Chroma](https://www.trychroma.com/) is the open-source embedding database. "
+                        "Chroma makes it easy to build LLM apps by making knowledge, facts, and skills pluggable "
+                        "for LLMs.\n")
             st.markdown(" ")
 
             st.markdown("##### Streamlit")
-            st.markdown(
-                """
-            [Streamlit](https://streamlit.io/) is an open-source app framework for Machine Learning and Data Science teams. Streamlit turns data scripts into shareable web apps in minutes. All in pure Python. No front-end experience required.
-            """
-            )
+            st.markdown("\n            [Streamlit](https://streamlit.io/) is an open-source app framework for "
+                        "Machine Learning and Data Science teams. Streamlit turns data scripts into shareable web "
+                        "apps in minutes. All in pure Python. No front-end experience required.\n")
 
         with st.container():
-            st.markdown("""---""")
-            st.markdown(
-                "![](app/static/github-24px-blk.png) [Feature request or bug report?](https://github.com/aws-solutions-library-samples/guidance-for-natural-language-queries-of-relational-databases-on-aws/issues)"
-            )
-            st.markdown(
-                "![](app/static/github-24px-blk.png) [The MoMA Collection datasets on GitHub](https://github.com/MuseumofModernArt/collection)"
-            )
-            st.markdown(
-                "![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)"
-            )
-
-
-def get_bedrock_credentials(region_name):
-    session = boto3.session.Session()
-    client = session.client(service_name="secretsmanager", region_name=region_name)
-    try:
-        secret = client.get_secret_value(SecretId="/nlq/bedrock_credentials")
-        secret = json.loads(secret["SecretString"])
-        access_key = secret["access_key"]
-        secret_key = secret["secret_key"]
-
-    except ClientError as e:
-        logging.error(e)
-        raise e
-
-    return access_key, secret_key
-
-
-def get_rds_uri(region_name):
-    # SQLAlchemy 2.0 reference: https://docs.sqlalchemy.org/en/20/dialects/postgresql.html
-    # URI format: postgresql+psycopg2://user:pwd@hostname:port/dbname
-
-    if 'DB_URI' in os.environ:
-        return os.getenv('DB_URI')
-
-    session = boto3.session.Session()
-    client = session.client(service_name="secretsmanager", region_name=region_name)
-
-    try:
-        secret = client.get_secret_value(SecretId="/nlq/RDS_URI")
-        secret = json.loads(secret["SecretString"])
-        rds_endpoint = secret["RDSDBInstanceEndpointAddress"]
-        rds_port = secret["RDSDBInstanceEndpointPort"]
-        rds_db_name = secret["NLQAppDatabaseName"]
-
-        secret = client.get_secret_value(SecretId="/nlq/NLQAppUsername")
-        rds_username = secret["SecretString"]
-
-        secret = client.get_secret_value(SecretId="/nlq/NLQAppUserPassword")
-        rds_password = secret["SecretString"]
-    except ClientError as e:
-        logging.error(e)
-        raise e
-
-    return f"postgresql+psycopg2://{rds_username}:{rds_password}@{rds_endpoint}:{rds_port}/{rds_db_name}"
-
-
-def load_samples():
-    # Load the sql examples for few-shot prompting examples
-    sql_samples = None
-
-    with open("assets/hotel_examples.yaml", "r") as stream:
-        sql_samples = yaml.safe_load(stream)
-
-    return sql_samples
-
-
-def load_few_shot_chain(llm, db, examples):
-    example_prompt = PromptTemplate(
-        input_variables=["table_info", "input", "sql_cmd", "sql_result", "answer"],
-        template=(
-            "{table_info}\n\nQuestion: {input}\nSQLQuery: {sql_cmd}\nSQLResult:"
-            " {sql_result}\nAnswer: {answer}"
-        ),
-    )
-
-    local_embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
-    example_selector = SemanticSimilarityExampleSelector.from_examples(
-        examples,
-        local_embeddings,
-        Chroma,
-        k=min(3, len(examples)),
-    )
-
-    few_shot_prompt = FewShotPromptTemplate(
-        example_selector=example_selector,
-        example_prompt=example_prompt,
-        prefix=_postgres_prompt + "Here are some examples:",
-        suffix=PROMPT_SUFFIX,
-        input_variables=["table_info", "input", "top_k"],
-    )
-
-    return SQLDatabaseChain.from_llm(
-        llm,
-        db,
-        prompt=few_shot_prompt,
-        use_query_checker=False,
-        verbose=True,
-        return_intermediate_steps=True,
-    )
+            st.markdown("---")
+            st.markdown("![](app/static/github-24px-blk.png) [Feature request or bug report?]"
+                        "(https://github.com/aws-solutions-library-samples/"
+                        "guidance-for-natural-language-queries-of-relational-databases-on-aws/issues)")
+            st.markdown("![](app/static/github-24px-blk.png) [The MoMA Collection datasets on GitHub]"
+                        "(https://github.com/MuseumofModernArt/collection)")
+            st.markdown("![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)")
 
 
 def clear_text():
