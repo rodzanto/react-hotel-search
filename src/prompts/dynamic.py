@@ -9,8 +9,6 @@ class DynamicPromptTemplate(PromptTemplate):
 
     def _merge_partial_and_user_variables(self, **kwargs: Any) -> Dict[str, Any]:
         # Get partial params:
-        partial_kwargs = {
-            k: v if isinstance(v, str) else v(**kwargs)
-            for k, v in self.partial_variables.items()
-        }
+        partial_kwargs = {k: v if isinstance(v, str) else v(**kwargs)
+                          for k, v in self.partial_variables.items()}
         return {**partial_kwargs, **kwargs}

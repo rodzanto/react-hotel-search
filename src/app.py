@@ -36,6 +36,11 @@ def clear_session():
         del st.session_state[key]
 
 
+def few_shot_examples(**kwargs) -> str:
+    print(kwargs)
+    return ''
+
+
 def main():
     st.set_page_config(page_title="Webbeds Natural Language Query (NLQ) Demo",
                        layout="wide",
@@ -73,6 +78,7 @@ def main():
         prompt_parts = yaml.safe_load(open('assets/prompt_template.yaml', 'rb'))
         st.session_state['agent_executor'] = create_sql_agent(llm=llm,
                                                               toolkit=toolkit,
+                                                              partial_variables={'examples': few_shot_examples},
                                                               agent_executor_kwargs={'memory':
                                                                   ConversationBufferMemory(
                                                                       memory_key='chat_history',
