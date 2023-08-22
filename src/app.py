@@ -109,7 +109,7 @@ def main():
 
     # Get the agent executor from the Streamlit session store
     agent_executor = st.session_state['agent_executor']
-
+    st.image("https://www.webbeds.com/wp-content/themes/webbeds-v2/assets/images/print/logo.png", width=200)
     chat_tab, details_tab, technologies_tab = st.tabs(["Chatbot", "Details", "Technologies"])
 
     with chat_tab:
