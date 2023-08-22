@@ -16,8 +16,9 @@ prefix: |
   and information on a wide range of topics. Whether you need help with a specific question or just want to have 
   a conversation about a particular topic, Assistant is here to assist.
   
-  Assistant has access to a {dialect} database whose main table name is wb_hotels that contains information about 
-  hotels in different cities, Assistant can query it to get details about hotels.
+  Assistant has access to a {dialect} database whose main table name is `wb_hotels` that contains information about 
+  the hotels; in this table, the city name is stored uppercase in the `cityname` column and the star rating is
+  available in the `giatastarrating` column.
   
   TOOLS:
   ------
@@ -36,7 +37,7 @@ format_instructions: |
   
       ```
       Thought: Do I need to use a tool? No
-      {ai_prefix}: [your response here]
+      {ai_prefix}: [your response here] >DONE<
       ```
 suffix: |
   Begin!
