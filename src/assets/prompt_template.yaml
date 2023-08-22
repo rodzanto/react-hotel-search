@@ -17,8 +17,8 @@ prefix: |
   a conversation about a particular topic, Assistant is here to assist.
   
   Assistant has access to a {dialect} database whose main table name is `wb_hotels` that contains information about 
-  the hotels; in this table, the city name is stored uppercase in the `cityname` column and the star rating is
-  available in the `giatastarrating` column.
+  the hotels; in this table the hotel name is stored in the `hotelname`column, the city name is stored uppercase in 
+  the `cityname` column and the star rating is available in the `giatastarrating` column.
   
   TOOLS:
   ------

@@ -16,41 +16,25 @@ from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain.chains.sql_database.prompt import PROMPT_SUFFIX, _postgres_prompt
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
-from langchain.callbacks import StreamlitCallbackHandler
+from streamlit.external.langchain import StreamlitCallbackHandler
 from langchain.vectorstores import Chroma
 from botocore.client import Config as BotoConfig
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
-MODEL_NAME = os.environ.get('MODEL_NAME', 'anthropic.claude-v2')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
-BASE_AVATAR_URL = (
-    "https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static"
-)
+BASE_AVATAR_URL = 'https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static'
+NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
 
 
 def main():
-    st.set_page_config(
-        page_title="Webbeds Natural Language Query (NLQ) Demo",
-        layout="wide",
-        initial_sidebar_state="collapsed",
-        page_icon='static/favicon-32x32.png'
-    )
+    st.set_page_config(page_title="Webbeds Natural Language Query (NLQ) Demo",
+                       layout="wide",
+                       initial_sidebar_state="collapsed",
+                       page_icon='static/favicon-32x32.png')
 
-    # # hide the hamburger bar menu
-    # hide_streamlit_style = """
-    #     <style>
-    #     #MainMenu {visibility: hidden;}
-    #     footer {visibility: hidden;}
-    #     </style>
-
-    # """
-    # st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-    NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
-
-    # Create the LangChain agent and equip it with a toolkit
+    # Create the Langchain agent and equip it with a toolkit, if not already loaded
     if 'agent_executor' not in st.session_state.keys():
         # We'll create an ad-hoc boto3 client so that the Bedrock client can use
         # different credentials from the rest of the code (if requested)
@@ -68,9 +52,9 @@ def main():
                       client=bedrock_client,
                       model_kwargs={'max_tokens_to_sample': 4096,
                                     "temperature": 0.5,
-                                    "top_k": 250,
-                                    "stop_sequences": ["\n\nQuestion"],
-                                    "top_p": 1})
+                                    "top_k": 125,
+                                    "stop_sequences": ['\n\nQuestion', '>DONE<'],
+                                    "top_p": 0.6})
 
         # Connect to the DB
         rds_uri = get_rds_uri(REGION_NAME)
@@ -183,7 +167,7 @@ def main():
         with st.container():
             st.markdown("### Details")
             st.markdown("Bedrock Model:")
-            st.code(MODEL_NAME, language="text")
+            st.code(agent_executor.agent.llm_chain.llm.model_id, language="text")
 
             position = len(st.session_state['generated']) - 1
             if (position >= 0) and (st.session_state['generated'][position] != NO_ANSWER_MSG):
@@ -361,6 +345,9 @@ def clear_text():
 
 
 def clear_session():
+    """
+    Delete all session variables from Streamlit
+    """
     for key in st.session_state.keys():
         del st.session_state[key]
 
