@@ -68,7 +68,10 @@ interest is:
 
 # Architecture and flow
 
-![arq](./pics/nlq-arq.png)
+The AWS Cloudformation stack will deploy the necessary components to get an scalable version
+of this code online. The architecture is described below:
+
+![arq](./pics/deployed-architecture.png)
 
 # Code
 
