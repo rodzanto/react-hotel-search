@@ -16,8 +16,8 @@ services:
     restart: always
     ports:
       - "8501:8501"
-    volumes:
-      - ./src:/home/appuser/app/
+#    volumes:
+#      - ./src:/home/appuser/app/
     environment:
       - DB_URI=postgresql+psycopg2://postgres:wdbQDPDKGYHwpZdVJ4Jr@postgres:5432/wb_hotels
       - USE_AWS_PROFILE=true
