@@ -6,6 +6,7 @@ import boto3
 import logging
 import streamlit as st
 from langchain import SQLDatabase
+from langchain.vectorstores import Chroma
 from langchain.llms.bedrock import Bedrock
 from agents.webbeds import create_sql_agent
 from botocore.client import Config as BotoConfig
@@ -14,10 +15,7 @@ from misc.config import get_rds_uri, get_bedrock_credentials
 from streamlit.external.langchain import StreamlitCallbackHandler
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain.prompts.example_selector.semantic_similarity import \
-    SemanticSimilarityExampleSelector
-from langchain.vectorstores import Chroma
-import json
+from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
@@ -46,17 +44,13 @@ def few_shot_examples(**kwargs) -> str:
     with open("assets/hotel_examples.yaml", "r") as stream:
         sql_samples = yaml.safe_load(stream)
 
-    local_embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    local_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-    example_selector = SemanticSimilarityExampleSelector.from_examples(
-        sql_samples,
-        local_embeddings,
-        Chroma,
-        k=min(2, len(sql_samples)),
-    )
-    
+    example_selector = SemanticSimilarityExampleSelector.from_examples(sql_samples,
+                                                                       local_embeddings,
+                                                                       Chroma,
+                                                                       k=min(2, len(sql_samples)))
+
     similar_examples = example_selector.select_examples({'input': kwargs.get('input')})
     similar_examples_str = []
     for example in similar_examples:
@@ -66,6 +60,7 @@ def few_shot_examples(**kwargs) -> str:
     print('\n'.join(similar_examples_str))
     print("-----------------------------------------------------")
     return '\n'.join(similar_examples_str)
+
 
 def main():
     st.set_page_config(page_title="Webbeds Natural Language Query (NLQ) Demo",

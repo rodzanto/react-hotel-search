@@ -126,21 +126,3 @@ def create_sql_agent(llm: BaseLanguageModel,
                                               max_execution_time=max_execution_time,
                                               early_stopping_method=early_stopping_method,
                                               **(agent_executor_kwargs or {}))
-
-
-if __name__ == '__main__':
-    from langchain.agents import load_tools
-
-
-    def superguay(**kwargs):
-        print('asdasd')
-
-
-    tools = load_tools([])
-    p = DynamicConversationalAgent.create_prompt(tools=tools,
-                                                 prefix='THIS IS THE PREFIX\n\n{examples}',
-                                                 suffix='THIS IS THE SUFFIX\n{input}',
-                                                 input_variables=['input'],
-                                                 partial_variables={'examples': superguay})
-
-    p.format(input='What is my name?')
