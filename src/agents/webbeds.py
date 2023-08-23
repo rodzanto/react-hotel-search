@@ -1,8 +1,6 @@
 """SQL agent extended to work with Webbeds data."""
-from typing import Any, Dict, Optional, Sequence, List, Union, Callable
 from langchain.tools import BaseTool
 from langchain.chains import LLMChain
-from langchain.formatting import formatter
 from langchain.agents import ConversationalAgent
 from langchain.agents.agent import AgentExecutor
 from prompts.dynamic import DynamicPromptTemplate
@@ -10,8 +8,8 @@ from langchain.callbacks.base import BaseCallbackManager
 from langchain.agents.agent import Agent, AgentOutputParser
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.agents.agent_toolkits.sql.prompt import SQL_PREFIX
+from typing import Any, Dict, Optional, Sequence, List, Union, Callable
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-
 from langchain.agents.conversational.prompt import FORMAT_INSTRUCTIONS, SUFFIX, PREFIX
 
 
