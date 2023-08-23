@@ -237,22 +237,6 @@ def main():
                         "            ")
             st.markdown(" ")
 
-            st.markdown("##### The MoMa Collection Datasets")
-            st.markdown("\n            [The Museum of Modern Art "
-                        "(MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 "
-                        "pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, "
-                        "encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the "
-                        "public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).\n")
-            st.markdown(" ")
-
-            st.markdown("##### Amazon SageMaker JumpStart Foundation Models")
-            st.markdown("\n            [Amazon SageMaker JumpStart Foundation Models]"
-                        "(https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models.html) "
-                        "offers state-of-the-art foundation models for use cases such as content writing, image and "
-                        "code generation, question answering, copywriting, summarization, classification, information "
-                        "retrieval, and more.\n")
-            st.markdown(" ")
-
             st.markdown("##### LangChain")
             st.markdown("\n            [LangChain](https://python.langchain.com/en/latest/index.html) is a framework "
                         "for developing applications powered by language models. LangChain provides standard, "
