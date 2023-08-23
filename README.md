@@ -96,6 +96,16 @@ some other parts of the code.
     but supports
     [conversational agents](https://python.langchain.com/docs/modules/agents/agent_types/chat_conversation_agent).
 
+# Screenshots
+
+## Multi-step reasoning
+
+![Multi-step reasoning](pics/app-multistep-reasoning.png)
+
+## Agent with memory
+
+![Agent memory](pics/app-memory.png)
+
 # References
 
 * [Amazon Bedrock](https://aws.amazon.com/bedrock/) provides API-based access to LLMs.
