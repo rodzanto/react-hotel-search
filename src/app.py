@@ -130,7 +130,7 @@ def main():
 
     # Get the agent executor from the Streamlit session store
     agent_executor = st.session_state['agent_executor']
-    st.image("https://www.webbeds.com/wp-content/themes/webbeds-v2/assets/images/print/logo.png", width=200)
+    st.image('static/logo.png', width=200)
     chat_tab, details_tab, technologies_tab = st.tabs(["Chatbot", "Details", "Technologies"])
 
     with chat_tab:
@@ -251,11 +251,6 @@ def main():
 
         with st.container():
             st.markdown("---")
-            st.markdown("![](app/static/github-24px-blk.png) [Feature request or bug report?]"
-                        "(https://github.com/aws-solutions-library-samples/"
-                        "guidance-for-natural-language-queries-of-relational-databases-on-aws/issues)")
-            st.markdown("![](app/static/github-24px-blk.png) [The MoMA Collection datasets on GitHub]"
-                        "(https://github.com/MuseumofModernArt/collection)")
             st.markdown("![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)")
 
 
