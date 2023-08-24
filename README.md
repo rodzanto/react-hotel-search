@@ -127,7 +127,7 @@ DB_URI=postgresql+psycopg2://[DB_USER]:[DB_PASSWORD]@[DB_URI]:[DB_PORT]/wb_hotel
 The AWS Cloudformation stack will deploy the necessary components to get a scalable (albeit 
 not production-ready) version of this application online. The architecture is described below:
 
-![arq](./pics/deployed-architecture.png)
+![arq](assets/deployed-architecture.png)
 
 # Code
 
@@ -159,11 +159,11 @@ some other parts of the code.
 
 ## Multi-step reasoning
 
-![Multi-step reasoning](pics/app-multistep-reasoning.png)
+![Multi-step reasoning](assets/app-multistep-reasoning.png)
 
 ## Agent with memory
 
-![Agent memory](pics/app-memory.png)
+![Agent memory](assets/app-memory.png)
 
 # References
 
