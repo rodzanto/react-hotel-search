@@ -22,10 +22,10 @@ def get_rds_uri(region_name):
         rds_port = secret["RDSDBInstanceEndpointPort"]
         rds_db_name = secret["NLQAppDatabaseName"]
 
-        secret = client.get_secret_value(SecretId="/nlq/NLQAppUsername")
+        secret = client.get_secret_value(SecretId="/nlq/MasterUsername")
         rds_username = secret["SecretString"]
 
-        secret = client.get_secret_value(SecretId="/nlq/NLQAppUserPassword")
+        secret = client.get_secret_value(SecretId="/nlq/MasterUserPassword")
         rds_password = secret["SecretString"]
     except ClientError as e:
         logging.error(e)

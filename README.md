@@ -36,6 +36,10 @@ Assuming that you will build the application image locally, you will need:
 * Create the following plaintext secrets in AWS Secrets Manager:
   - `/nlq/MasterUsername`: master username for the RDS PostgreSQL database.
   - `/nlq/MasterUserPassword`: password for the master user.
+  - `/nlq/bedrock_credentlals`: "other type of secret" with fields `access_key` and `secret_key`
+    for using a specific account for Bedrock (the rest of the code will use the ECS Task role).
+    If you do not wish to use separate credentials for Bedrock, set a `USE_AWS_PROFILE` environment
+    variable for the ECS Task (with value `true`) and this secret will not be used.
 * Deploy [`NlqMainStack.yaml`](cloudformation/NlqMainStack.yaml) to your account and desired
   region using AWS CloudFormation. Note the output value for the ECR repository URL, the
   load balancer URL & the name of the RDS database created by the template.
