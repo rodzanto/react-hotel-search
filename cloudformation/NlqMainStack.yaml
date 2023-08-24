@@ -22,23 +22,23 @@ Parameters:
 
   NLQAppDatabaseName:
     Type: String
-    Default: "moma"
+    Default: "wb_hotels"
     Description: NLQ application database.
 
   RDSPort:
     Type: Number
     Default: 5432
-    Description: The port RDS is listening on.
+    Description: The port RDS should listen on.
 
   ALBPort:
     Type: Number
     Default: 80
-    Description: The port the ALB is listening on.
+    Description: The port the ALB should listen on.
 
   NLQAppPort:
     Type: Number
     Default: 8501
-    Description: The port the NLQ application is listening on.
+    Description: The port the NLQ application should listen on.
 
   ECSLogGroupName:
     Type: String
@@ -209,7 +209,6 @@ Resources:
       DBInstanceClass: "db.m5d.large"
       Engine: "postgres"
       MasterUsername: "{{resolve:secretsmanager:/nlq/MasterUsername}}"
-      ManageMasterUserPassword: true
       MasterUserPassword: "{{resolve:secretsmanager:/nlq/MasterUserPassword}}"
       DBName: !Ref NLQAppDatabaseName
       PreferredBackupWindow: "03:05-03:35"
@@ -236,7 +235,7 @@ Resources:
       DBParameterGroupName: "default.postgres15"
       OptionGroupName: "default:postgres-15"
       MonitoringRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/rds-monitoring-role"
-      CACertificateIdentifier: "rds-ca-2019"
+      CACertificateIdentifier: "rds-ca-rsa2048-g1 CA"
       Tags:
         - Key: "Project"
           Value: !Ref ProjectTagValue
