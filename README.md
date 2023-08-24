@@ -58,7 +58,8 @@ docker push $ECR_REPOSITORY_URL:$IMAGE_TAG
 
 * Deploy [`NlqEcsBedrockStack.yaml`](cloudformation/NlqEcsBedrockStack.yaml) using 
   AWS Cloudformation. Be sure to change the parameters for the image tags, if you
-  changed it when building the image.
+  changed it when building the image and for the image architecture so that it matches 
+  the architecture you built the image for. 
 
 Open a browser and point it to the load balancer URL from the first step, you should
 see the Streamlit app after a few seconds.
