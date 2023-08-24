@@ -33,6 +33,9 @@ Assuming that you will build the application image locally, you will need:
 
 ### Instructions
 
+* Create the following plaintext secrets in AWS Secrets Manager:
+  - `/nlq/MasterUsername`: master username for the RDS PostgreSQL database.
+  - `/nlq/MasterUserPassword`: password for the master user.
 * Deploy [`NlqMainStack.yaml`](cloudformation/NlqMainStack.yaml) to your account and desired
   region using AWS CloudFormation. Note the output value for the ECR repository URL, the
   load balancer URL & the name of the RDS database created by the template.
@@ -49,8 +52,8 @@ IMAGE_TAG="1.0.0-bdrk"
 
 cd src
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_REPOSITORY_URL
-docker build -f Dockerfile_Bedrock -t $ECR_REPOSITORY_URL:$IMAGE_TAG .
-docker push $ECR_REPOSITORY_URL:$TAG
+docker build -t $ECR_REPOSITORY_URL:$IMAGE_TAG .
+docker push $ECR_REPOSITORY_URL:$IMAGE_TAG
 ```
 
 * Deploy [`NlqEcsBedrockStack.yaml`](cloudformation/NlqEcsBedrockStack.yaml) using 
