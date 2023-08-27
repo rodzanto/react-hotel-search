@@ -1,39 +1,26 @@
-import yaml
-from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain_experimental.sql import SQLDatabaseChain
-from langchain import PromptTemplate, FewShotPromptTemplate
-from langchain.prompts import SemanticSimilarityExampleSelector
-from langchain.chains.sql_database.prompt import _postgres_prompt, PROMPT_SUFFIX
+from typing import Any, Dict
+from prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
 
 
-def load_samples():
-    # Load the sql examples for few-shot prompting examples
-    with open("assets/hotel_examples.yaml", "r") as stream:
-        sql_samples = yaml.safe_load(stream)
+def few_shot_examples(example_selector: SemanticSimilarityExampleSelector,
+                      embedding_distance_threshold: float,
+                      context: Dict[str, Any]) -> str:
+    """
+    Few-shot example selector based on cosine distance between embeddings
 
-    return sql_samples
+    Parameters
+    ----------
+    example_selector : Configured selector object to use when searching for relevant examples
+    embedding_distance_threshold : Distance threshold. Only examples whose distance to the given query is
+                                   below the given threshold will be returned.
+    context : User's query context
 
-
-def load_few_shot_chain(llm, db, examples):
-    example_prompt = PromptTemplate(
-        input_variables=["table_info", "input", "sql_cmd", "sql_result", "answer"],
-        template=(
-            "{table_info}\n\nQuestion: {input}\nSQLQuery: {sql_cmd}\nSQLResult:"
-            " {sql_result}\nAnswer: {answer}"
-        ),
-    )
-
-    local_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-    example_selector = SemanticSimilarityExampleSelector.from_examples(examples, local_embeddings,
-                                                                       Chroma, k=min(3, len(examples)))
-
-    few_shot_prompt = FewShotPromptTemplate(example_selector=example_selector,
-                                            example_prompt=example_prompt,
-                                            prefix=_postgres_prompt + "Here are some examples:",
-                                            suffix=PROMPT_SUFFIX,
-                                            input_variables=["table_info", "input", "top_k"])
-
-    return SQLDatabaseChain.from_llm(llm, db, prompt=few_shot_prompt, use_query_checker=False,
-                                     verbose=True, return_intermediate_steps=True)
+    Returns
+    -------
+    Concatenated examples
+    """
+    similar_examples = []
+    for e in example_selector.select_with_score({'input': context.get('input')}):
+        if e[1] <= embedding_distance_threshold and e[0] not in similar_examples:
+            similar_examples.append(e[0])
+    return '\n\n'.join([f'User input: {e["input"]}\nSQL query: {e["sql_cmd"]}' for e in similar_examples])

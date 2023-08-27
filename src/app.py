@@ -6,18 +6,24 @@ import boto3
 import logging
 import streamlit as st
 from langchain import SQLDatabase
+from langchain.vectorstores import Chroma
 from langchain.llms.bedrock import Bedrock
+from misc.data_io import few_shot_examples
 from agents.webbeds import create_sql_agent
 from botocore.client import Config as BotoConfig
 from langchain.memory import ConversationBufferMemory
 from misc.config import get_rds_uri, get_bedrock_credentials
 from streamlit.external.langchain import StreamlitCallbackHandler
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
+
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = 'https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static'
 NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
+EMBEDDING_DISTANCE_THRESHOLD = 1.0
 
 
 def clear_text():
@@ -56,6 +62,18 @@ def main():
                                       config=config,
                                       **boto3_kwargs)
 
+        # Load the examples and the example selector we'll use for the few-shot selection
+        with open("assets/hotel_examples.yaml", "r") as stream:
+            sql_samples = yaml.safe_load(stream)
+
+        # Create a selector, but make it only search in the user input
+        local_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        example_selector = SemanticSimilarityExampleSelector.from_examples(sql_samples,
+                                                                           local_embeddings,
+                                                                           Chroma,
+                                                                           input_keys=['input'],
+                                                                           k=min(2, len(sql_samples)))
+
         llm = Bedrock(model_id='anthropic.claude-v2',
                       client=bedrock_client,
                       model_kwargs={'max_tokens_to_sample': 4096,
@@ -73,6 +91,11 @@ def main():
         prompt_parts = yaml.safe_load(open('assets/prompt_template.yaml', 'rb'))
         st.session_state['agent_executor'] = create_sql_agent(llm=llm,
                                                               toolkit=toolkit,
+                                                              partial_variables={'examples':
+                                                                                     lambda context: few_shot_examples(
+                                                                                         example_selector,
+                                                                                         EMBEDDING_DISTANCE_THRESHOLD,
+                                                                                         context)},
                                                               agent_executor_kwargs={'memory':
                                                                   ConversationBufferMemory(
                                                                       memory_key='chat_history',
@@ -103,7 +126,7 @@ def main():
 
     # Get the agent executor from the Streamlit session store
     agent_executor = st.session_state['agent_executor']
-
+    st.image('static/logo.png', width=200)
     chat_tab, details_tab, technologies_tab = st.tabs(["Chatbot", "Details", "Technologies"])
 
     with chat_tab:
@@ -122,9 +145,10 @@ def main():
                            - How many hotels are there?
                            - What are the best rated hotels in Barcelona?                            
                        - Moderate
-                           - Show me 5 hotels with 4 star rating
+                           - Find me a hotel in Madrid with the same rating as Apartamentos plaza de la luz, Cadiz
                        - Complex
-                           - TBD
+                           - Show me an alternative for Fairmont Monte Carlo
+                           - Give me the name and address of 4 5 star hotels in Monaco
                        - Unrelated to the Dataset
                            - Give me a recipe for chocolate cake.
                            - Don't write a SQL query. Don't use the database. Tell me who won the 2022 FIFA World Cup?
@@ -204,22 +228,6 @@ def main():
                         "            ")
             st.markdown(" ")
 
-            st.markdown("##### The MoMa Collection Datasets")
-            st.markdown("\n            [The Museum of Modern Art "
-                        "(MoMA) Collection](https://github.com/MuseumofModernArt/collection) contains over 120,000 "
-                        "pieces of artwork and 15,000 artists. The datasets are available on GitHub in CSV format, "
-                        "encoded in UTF-8. The datasets are also available in JSON. The datasets are provided to the "
-                        "public domain using a [CC0 License](https://creativecommons.org/publicdomain/zero/1.0/).\n")
-            st.markdown(" ")
-
-            st.markdown("##### Amazon SageMaker JumpStart Foundation Models")
-            st.markdown("\n            [Amazon SageMaker JumpStart Foundation Models]"
-                        "(https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models.html) "
-                        "offers state-of-the-art foundation models for use cases such as content writing, image and "
-                        "code generation, question answering, copywriting, summarization, classification, information "
-                        "retrieval, and more.\n")
-            st.markdown(" ")
-
             st.markdown("##### LangChain")
             st.markdown("\n            [LangChain](https://python.langchain.com/en/latest/index.html) is a framework "
                         "for developing applications powered by language models. LangChain provides standard, "
@@ -239,11 +247,6 @@ def main():
 
         with st.container():
             st.markdown("---")
-            st.markdown("![](app/static/github-24px-blk.png) [Feature request or bug report?]"
-                        "(https://github.com/aws-solutions-library-samples/"
-                        "guidance-for-natural-language-queries-of-relational-databases-on-aws/issues)")
-            st.markdown("![](app/static/github-24px-blk.png) [The MoMA Collection datasets on GitHub]"
-                        "(https://github.com/MuseumofModernArt/collection)")
             st.markdown("![](app/static/flaticon-24px.png) [Icons courtesy flaticon](https://www.flaticon.com)")
 
 

@@ -106,7 +106,7 @@
 
 
 - answer: There are 1551 hotels in Paris.
-  input: How many artworks are by the artist 'Pablo Picasso'?
+  input: How many hotels are there in Paris?
   sql_cmd: |
     select count(*) from wb_hotels where cityname='PARIS';
   sql_result: '[(1551,)]'

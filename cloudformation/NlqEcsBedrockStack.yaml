@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: "SO9250 Guidance for Natural Language Queries of Relational Databases on AWS - ECS for Bedrock stack template."
 Parameters:
-  BedrockModelName:
-    Type: String
-    Default: "anthropic.claude-v1"
-    Description: The Bedrock LLM to call via API.
-
   ECRImageTag:
     Type: String
     Default: "1.0.0-bdrk"
@@ -21,6 +16,14 @@ Parameters:
     Default: "SO9250 Guidance for Natural Language Queries of Relational Databases on AWS"
     Description: The Project Tag value applied to all resources.
 
+  ImageArchitecture:
+    Type: String
+    Default: "X86_64"
+    AllowedValues:
+      - "X86_64"
+      - "ARM64"
+    Description: Architecture the application container was built for.
+
 Resources:
   ECSTaskDefinitionBedrock:
     Type: "AWS::ECS::TaskDefinition"
@@ -29,8 +32,6 @@ Resources:
         - Environment:
             - Name: "REGION_NAME"
               Value: !Ref AWS::Region
-            - Name: "MODEL_NAME"
-              Value: !Ref BedrockModelName
           Essential: true
           Image: !Sub "{{resolve:ssm:/nlq/ECRRepositoryUri}}:${ECRImageTag}"
           LogConfiguration:
@@ -51,6 +52,8 @@ Resources:
       NetworkMode: "awsvpc"
       RequiresCompatibilities:
         - "FARGATE"
+      RuntimePlatform:
+        CpuArchitecture: !Ref ImageArchitecture
       Cpu: "1024"
       Memory: "3072"
       Tags:
