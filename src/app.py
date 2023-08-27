@@ -8,19 +8,22 @@ import streamlit as st
 from langchain import SQLDatabase
 from langchain.vectorstores import Chroma
 from langchain.llms.bedrock import Bedrock
+from misc.data_io import few_shot_examples
 from agents.webbeds import create_sql_agent
 from botocore.client import Config as BotoConfig
 from langchain.memory import ConversationBufferMemory
 from misc.config import get_rds_uri, get_bedrock_credentials
 from streamlit.external.langchain import StreamlitCallbackHandler
-from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-from langchain.prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
+from langchain.agents.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
+from prompts.example_selector.semantic_similarity import SemanticSimilarityExampleSelector
+
 
 REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = 'https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static'
 NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
+EMBEDDING_DISTANCE_THRESHOLD = 0.5
 
 
 def clear_text():
@@ -37,29 +40,6 @@ def clear_session():
     """
     for key in st.session_state.keys():
         del st.session_state[key]
-
-
-def few_shot_examples(**kwargs) -> str:
-    print(kwargs)
-    with open("assets/hotel_examples.yaml", "r") as stream:
-        sql_samples = yaml.safe_load(stream)
-
-    local_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-    example_selector = SemanticSimilarityExampleSelector.from_examples(sql_samples,
-                                                                       local_embeddings,
-                                                                       Chroma,
-                                                                       k=min(2, len(sql_samples)))
-
-    similar_examples = example_selector.select_examples({'input': kwargs.get('input')})
-    similar_examples_str = []
-    for example in similar_examples:
-        for k, v in example.items():
-            similar_examples_str.append(f"{k}: {v}")
-    print("----------------- Similar examples ------------------")
-    print('\n'.join(similar_examples_str))
-    print("-----------------------------------------------------")
-    return '\n'.join(similar_examples_str)
 
 
 def main():
@@ -82,6 +62,18 @@ def main():
                                       config=config,
                                       **boto3_kwargs)
 
+        # Load the examples and the example selector we'll use for the few-shot selection
+        with open("assets/hotel_examples.yaml", "r") as stream:
+            sql_samples = yaml.safe_load(stream)
+
+        # Create a selector, but make it only search in the user input
+        local_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        example_selector = SemanticSimilarityExampleSelector.from_examples(sql_samples,
+                                                                           local_embeddings,
+                                                                           Chroma,
+                                                                           input_keys=['input'],
+                                                                           k=min(2, len(sql_samples)))
+
         llm = Bedrock(model_id='anthropic.claude-v2',
                       client=bedrock_client,
                       model_kwargs={'max_tokens_to_sample': 4096,
@@ -99,7 +91,11 @@ def main():
         prompt_parts = yaml.safe_load(open('assets/prompt_template.yaml', 'rb'))
         st.session_state['agent_executor'] = create_sql_agent(llm=llm,
                                                               toolkit=toolkit,
-                                                              partial_variables={'examples': few_shot_examples},
+                                                              partial_variables={'examples':
+                                                                                     lambda context: few_shot_examples(
+                                                                                         example_selector,
+                                                                                         EMBEDDING_DISTANCE_THRESHOLD,
+                                                                                         context)},
                                                               agent_executor_kwargs={'memory':
                                                                   ConversationBufferMemory(
                                                                       memory_key='chat_history',

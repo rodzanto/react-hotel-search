@@ -1,9 +1,9 @@
 """SQL agent extended to work with Webbeds data."""
 from langchain.tools import BaseTool
 from langchain.chains import LLMChain
+from prompts.templates import PromptTemplate
 from langchain.agents import ConversationalAgent
 from langchain.agents.agent import AgentExecutor
-from prompts.dynamic import DynamicPromptTemplate
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.agents.agent import Agent, AgentOutputParser
 from langchain.schema.language_model import BaseLanguageModel
@@ -27,7 +27,7 @@ class DynamicConversationalAgent(ConversationalAgent):
             human_prefix: str = "Human",
             input_variables: Optional[List[str]] = None,
             partial_variables: Optional[Dict[str, Union[str, Callable]]] = None,
-    ) -> DynamicPromptTemplate:
+    ) -> PromptTemplate:
         """Create prompt in the style of the zero-shot agent.
 
         Args:
@@ -52,9 +52,9 @@ class DynamicConversationalAgent(ConversationalAgent):
         template = "\n\n".join([prefix, tool_strings, format_instructions, suffix])
         if input_variables is None:
             input_variables = ["input", "chat_history", "agent_scratchpad"]
-        return DynamicPromptTemplate(template=template,
-                                     input_variables=input_variables,
-                                     partial_variables=partial_variables)
+        return PromptTemplate(template=template,
+                              input_variables=input_variables,
+                              partial_variables=partial_variables)
 
     @classmethod
     def from_llm_and_tools(cls,
