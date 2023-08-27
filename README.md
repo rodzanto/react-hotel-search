@@ -163,6 +163,21 @@ some other parts of the code.
     but supports
     [conversational agents](https://python.langchain.com/docs/modules/agents/agent_types/chat_conversation_agent).
 
+# Points of improvement
+
+The authors recognize the following points as potential points of improvement for the code:
+
+* Adapt the PoC for more realistic scenarios involving reservations and not only hotel information.
+* Add external relevant tools (geographical info, pricing information, booking handler…)
+* Add real-world few-shot samples.
+* Prompt engineering: The general prompt needs adapting to a real-world example.
+* Security: The agent will happily create destructive or otherwise unwanted queries, this should be limited.
+* Ensure quality of responses: The agent will hallucinate responses given the appropriate input, but also long
+  conversations will provide incorrect answers.
+* Few shot example selector: The relevance threshold should be tweaked based on real-world examples, and the
+  format for the generated prompt section might need tweaking.
+
+
 # Screenshots
 
 ## Multi-step reasoning
