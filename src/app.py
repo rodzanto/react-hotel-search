@@ -23,7 +23,7 @@ REGION_NAME = os.environ.get('REGION_NAME', 'eu-west-1')
 os.environ['AWS_DEFAULT_REGION'] = 'us-east-1'
 BASE_AVATAR_URL = 'https://raw.githubusercontent.com/garystafford-aws/static-assets/main/static'
 NO_ANSWER_MSG = "Sorry, there was an internal error and I was unable to answer your question."
-EMBEDDING_DISTANCE_THRESHOLD = 0.5
+EMBEDDING_DISTANCE_THRESHOLD = 1.0
 
 
 def clear_text():
