@@ -168,13 +168,17 @@ some other parts of the code.
 The authors recognize the following points as potential points of improvement for the code:
 
 * Adapt the PoC for more realistic scenarios involving reservations and not only hotel information.
-* Add external relevant tools (geographical info, pricing information, booking handler…)
-* Add real-world few-shot samples.
+* Add external relevant tools (geographical info, pricing information, booking handler…) by providing a suitable
+  toolkit. Right now the code relies on Langchain's [`SQLDatabaseToolkit`](https://blog.langchain.dev/agent-toolkits/) 
+  in [`app.py`](src/app.py) but a real use case will need more relevant tools.
+* Add real-world few-shot samples in [`hotel_examples.yaml`](src/assets/hotel_examples.yaml).
 * Prompt engineering: The general prompt needs adapting to a real-world example.
-* Security: The agent will happily create destructive or otherwise unwanted queries, this should be limited.
+* Security: The agent will happily create destructive or otherwise unwanted queries (i.e: CPU-consuming or too 
+  long queries), this should be limited.
 * Ensure quality of responses: The agent will hallucinate responses given the appropriate input, but also long
   conversations will provide incorrect answers.
-* Few shot example selector: The relevance threshold should be tweaked based on real-world examples, and the
+* Few shot example selector: The relevance threshold (configured in the `EMBEDDING_DISTANCE_THRESHOLD` param in 
+  [`app.py`](src/app.py)) should be tweaked based on real-world examples, and the
   format for the generated prompt section might need tweaking.
 
 
