@@ -77,10 +77,10 @@ def main():
         llm = Bedrock(model_id='anthropic.claude-v2',
                       client=bedrock_client,
                       model_kwargs={'max_tokens_to_sample': 4096,
-                                    "temperature": 0.5,
-                                    "top_k": 125,
-                                    "stop_sequences": ['\n\nQuestion', '>DONE<'],
-                                    "top_p": 0.6})
+                                    'temperature': 0.5,
+                                    'top_k': 125,
+                                    'stop_sequences': ['\n\nQuestion', '>DONE<'],
+                                    'top_p': 0.6})
 
         # Connect to the DB
         rds_uri = get_rds_uri(REGION_NAME)
